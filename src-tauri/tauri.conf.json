@@ -40,6 +40,9 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "resources": [
+      "../config.json"
+    ],
     "macOS": {
       "entitlements": "entitlements.plist",
       "hardenedRuntime": true,
