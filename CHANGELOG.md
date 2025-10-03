@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.4](https://github.com/hackclub/hackatime-desktop/compare/app-v1.0.3...app-v1.0.4) (2025-10-03)
+
+
+### 👽 Miscellaneous
+
+* **ci:** remove build filter ([59f6f30](https://github.com/hackclub/hackatime-desktop/commit/59f6f30a0620dc553d061e6a80420bdc0d54ea41))
+
 ## [1.0.3](https://github.com/hackclub/hackatime-desktop/compare/app-v1.0.2...app-v1.0.3) (2025-10-03)
 
 
