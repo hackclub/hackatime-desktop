@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/hackclub/hackatime-desktop/compare/app-v1.0.2...app-v1.0.3) (2025-10-03)
+
+
+### 🐛 Bugfixes
+
+* remove pnpm patches ([af3cd94](https://github.com/hackclub/hackatime-desktop/commit/af3cd949b837ddf2a723255ab8d5f2100d99bbf9))
+
 ## [1.0.2](https://github.com/hackclub/hackatime-desktop/compare/app-v1.0.1...app-v1.0.2) (2025-10-03)
 
 
