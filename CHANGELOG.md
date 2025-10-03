@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.7](https://github.com/hackclub/hackatime-desktop/compare/app-v1.0.6...app-v1.0.7) (2025-10-03)
+
+
+### 👽 Miscellaneous
+
+* **ci:** enable lfs support ([33675f6](https://github.com/hackclub/hackatime-desktop/commit/33675f69d1276af70fef1b57be5e757ab45523d4))
+
 ## [1.0.6](https://github.com/hackclub/hackatime-desktop/compare/app-v1.0.5...app-v1.0.6) (2025-10-03)
 
 
