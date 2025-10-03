@@ -50,7 +50,7 @@
     "shell": {
       "open": true
     },
-    "deepLink": {
+    "deep-link": {
       "desktop": {
         "schemes": [
           "hackatime"
