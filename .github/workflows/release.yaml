@@ -115,7 +115,6 @@ jobs:
           libayatana-appindicator3-dev librsvg2-dev
       - name: Install frontend dependencies
         run: |
-          cd apps/app
           pnpm install
       - name: build app (macos)
         run: >-
