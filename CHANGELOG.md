@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.9](https://github.com/hackclub/hackatime-desktop/compare/app-v1.0.8...app-v1.0.9) (2025-10-03)
+
+
+### 🐛 Bugfixes
+
+* modify entitlements ([599e1c8](https://github.com/hackclub/hackatime-desktop/commit/599e1c8d4543789ebd2b694819f47de86a3ac027))
+
 ## [1.0.8](https://github.com/hackclub/hackatime-desktop/compare/app-v1.0.7...app-v1.0.8) (2025-10-03)
 
 
