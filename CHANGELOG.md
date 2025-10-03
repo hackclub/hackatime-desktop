@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/hackclub/hackatime-desktop/compare/app-v1.1.0...app-v1.1.1) (2025-10-03)
+
+
+### 🐛 Bugfixes
+
+* add config.json to tauri resouces ([d36f09c](https://github.com/hackclub/hackatime-desktop/commit/d36f09cf682278c1a7c29139e24951207a9d8038))
+
 ## [1.1.0](https://github.com/hackclub/hackatime-desktop/compare/app-v1.0.9...app-v1.1.0) (2025-10-03)
 
 
