@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/hackclub/hackatime-desktop/compare/app-v1.0.9...app-v1.1.0) (2025-10-03)
+
+
+### ✨ Features
+
+* add oauth ([c8314a1](https://github.com/hackclub/hackatime-desktop/commit/c8314a18c868461e2eb0f884752343e91f8fb1a3))
+
 ## [1.0.9](https://github.com/hackclub/hackatime-desktop/compare/app-v1.0.8...app-v1.0.9) (2025-10-03)
 
 
