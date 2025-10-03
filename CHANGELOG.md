@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.4](https://github.com/hackclub/hackatime-desktop/compare/app-v1.1.3...app-v1.1.4) (2025-10-03)
+
+
+### 🐛 Bugfixes
+
+* update api base url ([87d3b49](https://github.com/hackclub/hackatime-desktop/commit/87d3b49287e2755856a8143d29cfb95eca759659))
+
 ## [1.1.3](https://github.com/hackclub/hackatime-desktop/compare/app-v1.1.2...app-v1.1.3) (2025-10-03)
 
 
