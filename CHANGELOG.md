@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.5](https://github.com/hackclub/hackatime-desktop/compare/app-v1.0.4...app-v1.0.5) (2025-10-03)
+
+
+### 👽 Miscellaneous
+
+* **ci:** remove custom tauri config path ([694cc86](https://github.com/hackclub/hackatime-desktop/commit/694cc86d6b35a183b5e931defc02e4d55d9679e8))
+
 ## [1.0.4](https://github.com/hackclub/hackatime-desktop/compare/app-v1.0.3...app-v1.0.4) (2025-10-03)
 
 
