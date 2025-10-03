@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Hackatime Desktop",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "identifier": "com.hackclub.hackatime",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -51,11 +51,15 @@
       "open": true
     },
     "deepLink": {
-      "schemes": ["kubetime"]
+      "schemes": [
+        "kubetime"
+      ]
     },
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdERjg4QTFCNTJFMDk0MUQKUldRZGxPQlNHNHI0ZlRkMDN0MGI1MnllY1dUVStZalV3dVdhcTFuREx5SGtBc0txQ2xnTWs3WU4K",
-      "endpoints": ["https://pub-d35fbe65a5b5426bb6d62ff02a8c7d03.r2.dev/update-manifest.json"]
+      "endpoints": [
+        "https://pub-d35fbe65a5b5426bb6d62ff02a8c7d03.r2.dev/update-manifest.json"
+      ]
     }
   }
 }
