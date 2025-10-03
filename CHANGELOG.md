@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/hackclub/hackatime-desktop/compare/app-v1.1.1...app-v1.1.2) (2025-10-03)
+
+
+### 🐛 Bugfixes
+
+* change api endpoint ([2c5eccb](https://github.com/hackclub/hackatime-desktop/commit/2c5eccb5966a66070820239e91c880c91a335e71))
+
 ## [1.1.1](https://github.com/hackclub/hackatime-desktop/compare/app-v1.1.0...app-v1.1.1) (2025-10-03)
 
 
