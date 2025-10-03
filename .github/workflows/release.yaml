@@ -119,7 +119,7 @@ jobs:
       - name: build app (macos)
         run: >-
           pnpm run tauri build --target
-          universal-apple-darwin --config "tauri-release.conf.json"
+          universal-apple-darwin 
         if: 'startsWith(matrix.platform, ''macos'')'
         env:
           GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
@@ -134,8 +134,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: '${{ secrets.TAURI_KEY_PASSWORD }}'
       - name: build app
         run: >-
-          pnpm run tauri build --config
-          "tauri-release.conf.json"
+          pnpm run tauri build
         id: build_os
         if: '!startsWith(matrix.platform, ''macos'')'
         env:
