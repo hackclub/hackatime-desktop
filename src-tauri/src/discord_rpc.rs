@@ -44,11 +44,12 @@ impl DiscordRpcService {
 
         let mut client = DiscordIpcClient::new(client_id);
 
-        client.connect()
+        client
+            .connect()
             .map_err(|e| format!("Failed to connect to Discord: {}", e))?;
 
         self.client = Some(client);
-        
+
         // Update state
         let mut state = self.state.lock().unwrap();
         state.is_connected = true;
@@ -59,7 +60,8 @@ impl DiscordRpcService {
 
     pub fn disconnect(&mut self) -> Result<(), String> {
         if let Some(mut client) = self.client.take() {
-            client.close()
+            client
+                .close()
                 .map_err(|e| format!("Failed to disconnect from Discord: {}", e))?;
         }
 
@@ -83,16 +85,15 @@ impl DiscordRpcService {
     }
 
     fn set_activity_internal(&mut self, activity: DiscordActivity) -> Result<(), String> {
-        let client = self.client.as_mut()
-            .ok_or("Discord client not connected")?;
+        let client = self.client.as_mut().ok_or("Discord client not connected")?;
 
         // Build details string
         let mut details_parts = Vec::new();
-        
+
         if let Some(language) = &activity.language {
             details_parts.push(format!("Language: {}", language));
         }
-        
+
         if let Some(editor) = &activity.editor {
             details_parts.push(format!("Editor: {}", editor));
         }
@@ -109,8 +110,7 @@ impl DiscordRpcService {
         };
 
         // Create activity with all components
-        let mut discord_activity = activity::Activity::new()
-            .state(&activity.project_name);
+        let mut discord_activity = activity::Activity::new().state(&activity.project_name);
 
         if let Some(details) = &details_string {
             discord_activity = discord_activity.details(details);
@@ -118,28 +118,31 @@ impl DiscordRpcService {
 
         // Set start time if provided
         if let Some(start_time) = activity.start_time {
-            discord_activity = discord_activity.timestamps(activity::Timestamps::new().start(start_time));
+            discord_activity =
+                discord_activity.timestamps(activity::Timestamps::new().start(start_time));
         }
 
         // Add assets
-        discord_activity = discord_activity
-            .assets(activity::Assets::new()
+        discord_activity = discord_activity.assets(
+            activity::Assets::new()
                 .large_image("kubetime")
                 .large_text("KubeTime - Time Tracking")
                 .small_image("coding")
-                .small_text("Coding"));
+                .small_text("Coding"),
+        );
 
-        client.set_activity(discord_activity)
+        client
+            .set_activity(discord_activity)
             .map_err(|e| format!("Failed to set Discord activity: {}", e))?;
 
         Ok(())
     }
 
     pub fn clear_activity(&mut self) -> Result<(), String> {
-        let client = self.client.as_mut()
-            .ok_or("Discord client not connected")?;
+        let client = self.client.as_mut().ok_or("Discord client not connected")?;
 
-        client.clear_activity()
+        client
+            .clear_activity()
             .map_err(|e| format!("Failed to clear Discord activity: {}", e))?;
 
         // Update state
@@ -157,9 +160,15 @@ impl DiscordRpcService {
         self.state.lock().unwrap().is_connected
     }
 
-    pub fn update_activity_from_heartbeat(&mut self, heartbeat_data: &crate::HeartbeatData) -> Result<(), String> {
+    pub fn update_activity_from_heartbeat(
+        &mut self,
+        heartbeat_data: &crate::HeartbeatData,
+    ) -> Result<(), String> {
         let activity = DiscordActivity {
-            project_name: heartbeat_data.project.clone().unwrap_or_else(|| "Unknown Project".to_string()),
+            project_name: heartbeat_data
+                .project
+                .clone()
+                .unwrap_or_else(|| "Unknown Project".to_string()),
             language: heartbeat_data.language.clone(),
             editor: heartbeat_data.editor.clone(),
             entity: heartbeat_data.entity.clone(),
@@ -169,9 +178,16 @@ impl DiscordRpcService {
         self.set_activity(activity)
     }
 
-    pub fn update_activity_from_session(&mut self, heartbeat_data: &crate::HeartbeatData, session_start_time: i64) -> Result<(), String> {
+    pub fn update_activity_from_session(
+        &mut self,
+        heartbeat_data: &crate::HeartbeatData,
+        session_start_time: i64,
+    ) -> Result<(), String> {
         let activity = DiscordActivity {
-            project_name: heartbeat_data.project.clone().unwrap_or_else(|| "Unknown Project".to_string()),
+            project_name: heartbeat_data
+                .project
+                .clone()
+                .unwrap_or_else(|| "Unknown Project".to_string()),
             language: heartbeat_data.language.clone(),
             editor: heartbeat_data.editor.clone(),
             entity: heartbeat_data.entity.clone(),

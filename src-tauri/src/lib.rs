@@ -1,18 +1,21 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::Arc;
-use std::path::Path;
-use std::fs;
 use std::env;
+use std::fs;
+use std::path::Path;
+use std::sync::Arc;
+use tauri::menu::{Menu, MenuItem};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{Manager, State, WindowEvent};
 use tauri_plugin_deep_link::DeepLinkExt;
-use tauri::tray::{TrayIconBuilder, TrayIconEvent, MouseButton, MouseButtonState};
-use tauri::menu::{Menu, MenuItem};
 
 mod database;
 mod discord_rpc;
-use database::{Database, AuthState as DbAuthState, get_hackatime_config_dir, get_hackatime_logs_dir, get_hackatime_data_dir, get_platform_info};
-use discord_rpc::{DiscordRpcService, DiscordRpcState, DiscordActivity};
+use database::{
+    get_hackatime_config_dir, get_hackatime_data_dir, get_hackatime_logs_dir, get_platform_info,
+    AuthState as DbAuthState, Database,
+};
+use discord_rpc::{DiscordActivity, DiscordRpcService, DiscordRpcState};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct AuthState {
@@ -56,7 +59,9 @@ async fn set_api_config(
 }
 
 #[tauri::command]
-async fn get_auth_state(state: State<'_, Arc<tauri::async_runtime::Mutex<AuthState>>>) -> Result<AuthState, String> {
+async fn get_auth_state(
+    state: State<'_, Arc<tauri::async_runtime::Mutex<AuthState>>>,
+) -> Result<AuthState, String> {
     let auth_state = state.lock().await;
     Ok(auth_state.clone())
 }
@@ -69,17 +74,21 @@ async fn authenticate_with_rails(
 ) -> Result<(), String> {
     // Create the authentication URL with deep link callback
     let callback_url = "kubetime://auth/callback";
-    let auth_url = format!("{}/auth/desktop?callback={}", api_config.base_url, urlencoding::encode(callback_url));
-    
+    let auth_url = format!(
+        "{}/auth/desktop?callback={}",
+        api_config.base_url,
+        urlencoding::encode(callback_url)
+    );
+
     // Open the authentication URL in the default browser
     if let Err(e) = open::that(&auth_url) {
         return Err(format!("Failed to open authentication URL: {}", e));
     }
-    
+
     // Show a message to the user about the authentication process
     // In a real implementation, you would handle the OAuth callback
     // For now, we'll just open the browser and let the user complete auth there
-    
+
     Ok(())
 }
 
@@ -93,7 +102,7 @@ async fn handle_auth_callback(
     auth_state.access_token = Some(token);
     // You would typically fetch user info here
     auth_state.user_info = Some(HashMap::new());
-    
+
     Ok(())
 }
 
@@ -105,12 +114,12 @@ async fn logout(
     auth_state.is_authenticated = false;
     auth_state.access_token = None;
     auth_state.user_info = None;
-    
+
     // Clear saved auth state
     if let Err(e) = clear_auth_state().await {
         eprintln!("Failed to clear auth state: {}", e);
     }
-    
+
     Ok(())
 }
 
@@ -123,7 +132,7 @@ async fn test_auth_callback(
     auth_state.is_authenticated = true;
     auth_state.access_token = Some(token);
     auth_state.user_info = Some(HashMap::new());
-    
+
     Ok(())
 }
 
@@ -133,14 +142,16 @@ async fn get_api_key(
     state: State<'_, Arc<tauri::async_runtime::Mutex<AuthState>>>,
 ) -> Result<String, String> {
     let auth_state = state.lock().await;
-    
+
     if !auth_state.is_authenticated {
         return Err("Not authenticated".to_string());
     }
-    
-    let access_token = auth_state.access_token.as_ref()
+
+    let access_token = auth_state
+        .access_token
+        .as_ref()
         .ok_or("No access token available")?;
-    
+
     let client = reqwest::Client::new();
     let response = client
         .get(&format!("{}/api/v1/desktop/api_key", api_config.base_url))
@@ -148,18 +159,24 @@ async fn get_api_key(
         .send()
         .await
         .map_err(|e| format!("Failed to fetch API key: {}", e))?;
-    
+
     if !response.status().is_success() {
-        let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown error".to_string());
         return Err(format!("API key request failed: {}", error_text));
     }
-    
-    let api_key_response: serde_json::Value = response.json().await
+
+    let api_key_response: serde_json::Value = response
+        .json()
+        .await
         .map_err(|e| format!("Failed to parse API key response: {}", e))?;
-    
-    let api_key = api_key_response["api_key"].as_str()
+
+    let api_key = api_key_response["api_key"]
+        .as_str()
         .ok_or("No API key in response")?;
-    
+
     Ok(api_key.to_string())
 }
 
@@ -170,14 +187,14 @@ async fn authenticate_with_direct_oauth(
     state: State<'_, Arc<tauri::async_runtime::Mutex<AuthState>>>,
 ) -> Result<(), String> {
     let client = reqwest::Client::new();
-    
+
     // Check if this is a deep link URL and extract the temp_token
     let token_to_use = if oauth_token.starts_with("kubetime://auth/callback") {
         // Extract temp_token from deep link URL
         if let Some(query_start) = oauth_token.find('?') {
             let query = &oauth_token[query_start + 1..];
             let params: Vec<&str> = query.split('&').collect();
-            
+
             let mut found_token = None;
             for param in params {
                 if param.starts_with("temp_token=") {
@@ -187,7 +204,7 @@ async fn authenticate_with_direct_oauth(
                     break;
                 }
             }
-            
+
             match found_token {
                 Some(token) => token,
                 None => return Err("No temp_token found in deep link URL".to_string()),
@@ -198,19 +215,20 @@ async fn authenticate_with_direct_oauth(
     } else {
         oauth_token
     };
-    
+
     // Determine if this is a temporary token or a full OAuth token
     // Temporary tokens are typically 64 characters (32 bytes in hex)
     // OAuth tokens are usually longer and have a different format
-    
-    let is_temp_token = token_to_use.len() == 64 && token_to_use.chars().all(|c| c.is_ascii_hexdigit());
-    
+
+    let is_temp_token =
+        token_to_use.len() == 64 && token_to_use.chars().all(|c| c.is_ascii_hexdigit());
+
     if is_temp_token {
         // This is a temporary token, exchange it for a proper OAuth token
         println!("Attempting to exchange temporary token: {}", token_to_use);
         let exchange_url = format!("{}/api/v1/desktop/exchange_token", api_config.base_url);
         println!("Exchange URL: {}", exchange_url);
-        
+
         let response = client
             .post(&exchange_url)
             .json(&serde_json::json!({
@@ -219,93 +237,110 @@ async fn authenticate_with_direct_oauth(
             .send()
             .await
             .map_err(|e| format!("Failed to exchange temporary token: {}", e))?;
-        
+
         println!("Exchange response status: {}", response.status());
-        
+
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
             println!("Exchange failed with error: {}", error_text);
             return Err(format!("Token exchange failed: {}", error_text));
         }
-        
-        let token_response: serde_json::Value = response.json().await
+
+        let token_response: serde_json::Value = response
+            .json()
+            .await
             .map_err(|e| format!("Failed to parse token response: {}", e))?;
-        
-        let access_token = token_response["access_token"].as_str()
+
+        let access_token = token_response["access_token"]
+            .as_str()
             .ok_or("No access token in response")?;
-        
-        let user_info = token_response["user"].as_object()
+
+        let user_info = token_response["user"]
+            .as_object()
             .ok_or("No user info in response")?;
-        
+
         // Convert serde_json::Map to HashMap
         let mut user_info_map = HashMap::new();
         for (key, value) in user_info {
             user_info_map.insert(key.clone(), value.clone());
         }
-        
+
         // Update authentication state
         let mut auth_state = state.lock().await;
         auth_state.is_authenticated = true;
         auth_state.access_token = Some(access_token.to_string());
         auth_state.user_info = Some(user_info_map);
-        
+
         // Save auth state to disk
         let auth_state_to_save = auth_state.clone();
         drop(auth_state); // Release the lock before the async call
         if let Err(e) = save_auth_state(auth_state_to_save).await {
             eprintln!("Failed to save auth state: {}", e);
         }
-        
+
         Ok(())
     } else {
         // This is a full OAuth token, validate it directly
         let response = client
-            .post(&format!("{}/api/v1/desktop/validate_oauth_token", api_config.base_url))
+            .post(&format!(
+                "{}/api/v1/desktop/validate_oauth_token",
+                api_config.base_url
+            ))
             .json(&serde_json::json!({
                 "oauth_token": token_to_use
             }))
             .send()
             .await
             .map_err(|e| format!("Failed to validate OAuth token: {}", e))?;
-        
+
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
             return Err(format!("OAuth token validation failed: {}", error_text));
         }
-        
-        let auth_response: serde_json::Value = response.json().await
+
+        let auth_response: serde_json::Value = response
+            .json()
+            .await
             .map_err(|e| format!("Failed to parse auth response: {}", e))?;
-        
-        let user_info = auth_response["user"].as_object()
+
+        let user_info = auth_response["user"]
+            .as_object()
             .ok_or("No user info in response")?;
-        
+
         // Convert serde_json::Map to HashMap
         let mut user_info_map = HashMap::new();
         for (key, value) in user_info {
             user_info_map.insert(key.clone(), value.clone());
         }
-        
+
         // Get the access token and API keys
-        let access_token = auth_response["access_token"].as_str()
+        let access_token = auth_response["access_token"]
+            .as_str()
             .ok_or("No access token in response")?;
-        
-        let _api_key = auth_response["api_key"].as_str()
+
+        let _api_key = auth_response["api_key"]
+            .as_str()
             .ok_or("No API key in response")?;
-        
+
         // Update authentication state
         let mut auth_state = state.lock().await;
         auth_state.is_authenticated = true;
         auth_state.access_token = Some(access_token.to_string());
         auth_state.user_info = Some(user_info_map);
-        
-        
+
         // Save auth state to disk
         let auth_state_to_save = auth_state.clone();
         drop(auth_state); // Release the lock before the async call
         if let Err(e) = save_auth_state(auth_state_to_save).await {
             eprintln!("Failed to save auth state: {}", e);
         }
-        
+
         Ok(())
     }
 }
@@ -319,92 +354,98 @@ async fn handle_deep_link_callback(
     // Exchange temporary token for proper access token
     let client = reqwest::Client::new();
     let response = client
-        .post(&format!("{}/api/v1/desktop/exchange_token", api_config.base_url))
+        .post(&format!(
+            "{}/api/v1/desktop/exchange_token",
+            api_config.base_url
+        ))
         .json(&serde_json::json!({
             "temp_token": temp_token
         }))
         .send()
         .await
         .map_err(|e| format!("Failed to exchange token: {}", e))?;
-    
+
     if !response.status().is_success() {
-        let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown error".to_string());
         return Err(format!("Token exchange failed: {}", error_text));
     }
-    
-    let token_response: serde_json::Value = response.json().await
+
+    let token_response: serde_json::Value = response
+        .json()
+        .await
         .map_err(|e| format!("Failed to parse token response: {}", e))?;
-    
-    let access_token = token_response["access_token"].as_str()
+
+    let access_token = token_response["access_token"]
+        .as_str()
         .ok_or("No access token in response")?;
-    
-    let user_info = token_response["user"].as_object()
+
+    let user_info = token_response["user"]
+        .as_object()
         .ok_or("No user info in response")?;
-    
+
     // Convert serde_json::Map to HashMap
     let mut user_info_map = HashMap::new();
     for (key, value) in user_info {
         user_info_map.insert(key.clone(), value.clone());
     }
-    
+
     // Update authentication state
     let mut auth_state = auth_state.lock().await;
     auth_state.is_authenticated = true;
     auth_state.access_token = Some(access_token.to_string());
     auth_state.user_info = Some(user_info_map);
-    
+
     // Save auth state to disk
     let auth_state_to_save = auth_state.clone();
     drop(auth_state); // Release the lock before the async call
     if let Err(e) = save_auth_state(auth_state_to_save).await {
         eprintln!("Failed to save auth state: {}", e);
     }
-    
+
     Ok(())
 }
 
 #[tauri::command]
-async fn setup_hackatime_macos_linux(
-    api_key: String,
-    api_url: String,
-) -> Result<String, String> {
-    let home_dir = std::env::var("HOME")
-        .map_err(|_| "Failed to get home directory")?;
-    
+async fn setup_hackatime_macos_linux(api_key: String, api_url: String) -> Result<String, String> {
+    let home_dir = std::env::var("HOME").map_err(|_| "Failed to get home directory")?;
+
     let config_path = format!("{}/.wakatime.cfg", home_dir);
     let backup_path = format!("{}/.wakatime.cfg.bak", home_dir);
-    
+
     // Backup existing config if it exists
     if Path::new(&config_path).exists() {
         if let Err(e) = fs::rename(&config_path, &backup_path) {
             return Err(format!("Failed to backup existing config: {}", e));
         }
     }
-    
+
     // Create new config file
     let config_content = format!(
         "[settings]\napi_url = {}\napi_key = {}\nheartbeat_rate_limit_seconds = 30\n",
         api_url, api_key
     );
-    
+
     if let Err(e) = fs::write(&config_path, config_content) {
         return Err(format!("Failed to write config file: {}", e));
     }
-    
+
     // Verify config was created
     if !Path::new(&config_path).exists() {
         return Err("Config file was not created".to_string());
     }
-    
+
     // Read and verify config
     let config_content = fs::read_to_string(&config_path)
         .map_err(|e| format!("Failed to read config file: {}", e))?;
-    
+
     let lines: Vec<&str> = config_content.lines().collect();
     let mut found_api_url = false;
     let mut found_api_key = false;
     let mut found_heartbeat_rate = false;
-    
+
     for line in lines {
         if line.starts_with("api_url =") {
             found_api_url = true;
@@ -414,56 +455,56 @@ async fn setup_hackatime_macos_linux(
             found_heartbeat_rate = true;
         }
     }
-    
+
     if !found_api_url || !found_api_key || !found_heartbeat_rate {
         return Err("Config file is missing required fields".to_string());
     }
-    
-    Ok(format!("Config file created successfully at {}", config_path))
+
+    Ok(format!(
+        "Config file created successfully at {}",
+        config_path
+    ))
 }
 
 #[tauri::command]
-async fn setup_hackatime_windows(
-    api_key: String,
-    api_url: String,
-) -> Result<String, String> {
-    let userprofile = std::env::var("USERPROFILE")
-        .map_err(|_| "Failed to get USERPROFILE directory")?;
-    
+async fn setup_hackatime_windows(api_key: String, api_url: String) -> Result<String, String> {
+    let userprofile =
+        std::env::var("USERPROFILE").map_err(|_| "Failed to get USERPROFILE directory")?;
+
     let config_path = format!("{}\\.wakatime.cfg", userprofile);
     let backup_path = format!("{}\\.wakatime.cfg.bak", userprofile);
-    
+
     // Backup existing config if it exists
     if Path::new(&config_path).exists() {
         if let Err(e) = fs::rename(&config_path, &backup_path) {
             return Err(format!("Failed to backup existing config: {}", e));
         }
     }
-    
+
     // Create new config file
     let config_content = format!(
         "[settings]\r\napi_url = {}\r\napi_key = {}\r\nheartbeat_rate_limit_seconds = 30\r\n",
         api_url, api_key
     );
-    
+
     if let Err(e) = fs::write(&config_path, config_content) {
         return Err(format!("Failed to write config file: {}", e));
     }
-    
+
     // Verify config was created
     if !Path::new(&config_path).exists() {
         return Err("Config file was not created".to_string());
     }
-    
+
     // Read and verify config
     let config_content = fs::read_to_string(&config_path)
         .map_err(|e| format!("Failed to read config file: {}", e))?;
-    
+
     let lines: Vec<&str> = config_content.lines().collect();
     let mut found_api_url = false;
     let mut found_api_key = false;
     let mut found_heartbeat_rate = false;
-    
+
     for line in lines {
         if line.starts_with("api_url =") {
             found_api_url = true;
@@ -473,32 +514,32 @@ async fn setup_hackatime_windows(
             found_heartbeat_rate = true;
         }
     }
-    
+
     if !found_api_url || !found_api_key || !found_heartbeat_rate {
         return Err("Config file is missing required fields".to_string());
     }
-    
-    Ok(format!("Config file created successfully at {}", config_path))
+
+    Ok(format!(
+        "Config file created successfully at {}",
+        config_path
+    ))
 }
 
 #[tauri::command]
-async fn test_hackatime_heartbeat(
-    api_key: String,
-    api_url: String,
-) -> Result<String, String> {
+async fn test_hackatime_heartbeat(api_key: String, api_url: String) -> Result<String, String> {
     let client = reqwest::Client::new();
     let current_time = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_secs();
-    
+
     let heartbeat_data = serde_json::json!([{
         "type": "file",
         "time": current_time,
         "entity": "test.txt",
         "language": "Text"
     }]);
-    
+
     let response = client
         .post(&format!("{}/users/current/heartbeats", api_url))
         .header("Authorization", format!("Bearer {}", api_key))
@@ -507,20 +548,20 @@ async fn test_hackatime_heartbeat(
         .send()
         .await
         .map_err(|e| format!("Failed to send heartbeat: {}", e))?;
-    
+
     if response.status().is_success() {
         Ok("Test heartbeat sent successfully!".to_string())
     } else {
-        let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown error".to_string());
         Err(format!("Heartbeat failed: {}", error_text))
     }
 }
 
 #[tauri::command]
-async fn setup_hackatime_complete(
-    api_key: String,
-    api_url: String,
-) -> Result<String, String> {
+async fn setup_hackatime_complete(api_key: String, api_url: String) -> Result<String, String> {
     // Detect operating system and use appropriate setup function
     if cfg!(target_os = "windows") {
         setup_hackatime_windows(api_key, api_url).await
@@ -530,26 +571,26 @@ async fn setup_hackatime_complete(
 }
 
 #[tauri::command]
-async fn save_auth_state(
-    auth_state: AuthState,
-) -> Result<(), String> {
-    println!("save_auth_state called: authenticated={}, has_token={}", 
-        auth_state.is_authenticated, 
-        auth_state.access_token.is_some());
+async fn save_auth_state(auth_state: AuthState) -> Result<(), String> {
+    println!(
+        "save_auth_state called: authenticated={}, has_token={}",
+        auth_state.is_authenticated,
+        auth_state.access_token.is_some()
+    );
     let db = Database::new().await?;
     println!("Database connection successful for save");
-    
+
     // Convert to database AuthState format
     let db_auth_state = DbAuthState {
         is_authenticated: auth_state.is_authenticated,
         access_token: auth_state.access_token,
         user_info: auth_state.user_info,
     };
-    
+
     // Save to database
     let session_id = db.save_session(&db_auth_state).await?;
     println!("Session saved with ID: {}", session_id);
-    
+
     Ok(())
 }
 
@@ -558,12 +599,14 @@ async fn load_auth_state() -> Result<Option<AuthState>, String> {
     println!("load_auth_state called");
     let db = Database::new().await?;
     println!("Database connection successful");
-    
+
     match db.load_latest_session().await? {
         Some(db_auth_state) => {
-            println!("Found saved session: authenticated={}, has_token={}", 
-                db_auth_state.is_authenticated, 
-                db_auth_state.access_token.is_some());
+            println!(
+                "Found saved session: authenticated={}, has_token={}",
+                db_auth_state.is_authenticated,
+                db_auth_state.access_token.is_some()
+            );
             let auth_state = AuthState {
                 is_authenticated: db_auth_state.is_authenticated,
                 access_token: db_auth_state.access_token,
@@ -641,14 +684,16 @@ async fn register_presence_connection(
     state: State<'_, Arc<tauri::async_runtime::Mutex<AuthState>>>,
 ) -> Result<(), String> {
     let auth_state = state.lock().await;
-    
+
     if !auth_state.is_authenticated {
         return Err("Not authenticated".to_string());
     }
-    
-    let access_token = auth_state.access_token.as_ref()
+
+    let access_token = auth_state
+        .access_token
+        .as_ref()
         .ok_or("No access token available")?;
-    
+
     let client = reqwest::Client::new();
     let response = client
         .post(&format!("{}/api/v1/presence/register", api_config.base_url))
@@ -656,12 +701,15 @@ async fn register_presence_connection(
         .send()
         .await
         .map_err(|e| format!("Failed to register presence connection: {}", e))?;
-    
+
     if !response.status().is_success() {
-        let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown error".to_string());
         return Err(format!("Presence registration failed: {}", error_text));
     }
-    
+
     Ok(())
 }
 
@@ -673,38 +721,48 @@ async fn get_latest_heartbeat(
     session_state: State<'_, Arc<tauri::async_runtime::Mutex<SessionState>>>,
 ) -> Result<HeartbeatResponse, String> {
     let auth_state = state.lock().await;
-    
+
     if !auth_state.is_authenticated {
         return Err("Not authenticated".to_string());
     }
-    
-    let access_token = auth_state.access_token.as_ref()
+
+    let access_token = auth_state
+        .access_token
+        .as_ref()
         .ok_or("No access token available")?;
-    
+
     let client = reqwest::Client::new();
     let response = client
-        .get(&format!("{}/api/v1/presence/latest_heartbeat", api_config.base_url))
+        .get(&format!(
+            "{}/api/v1/presence/latest_heartbeat",
+            api_config.base_url
+        ))
         .bearer_auth(access_token)
         .send()
         .await
         .map_err(|e| format!("Failed to get latest heartbeat: {}", e))?;
-    
+
     let status = response.status();
     if !status.is_success() {
-        let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
-        
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown error".to_string());
+
         // Handle rate limiting gracefully
         if status == 429 {
             println!("Rate limited, will retry later");
             return Err(format!("Rate limited: {}", error_text));
         }
-        
+
         return Err(format!("Failed to get latest heartbeat: {}", error_text));
     }
-    
-    let heartbeat_response: HeartbeatResponse = response.json().await
+
+    let heartbeat_response: HeartbeatResponse = response
+        .json()
+        .await
         .map_err(|e| format!("Failed to parse heartbeat response: {}", e))?;
-    
+
     // Process session logic
     if let Some(heartbeat) = &heartbeat_response.heartbeat {
         let mut session = session_state.lock().await;
@@ -712,14 +770,14 @@ async fn get_latest_heartbeat(
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_secs() as i64;
-        
+
         // Check if heartbeat is less than 2 minutes old
         let heartbeat_age = current_time - heartbeat.timestamp;
         let is_recent = heartbeat_age < 120; // 2 minutes
-        
+
         // Check for duplicate heartbeat (same ID as last one)
         let is_duplicate = session.last_heartbeat_id == Some(heartbeat.id);
-        
+
         if is_duplicate {
             // Duplicate heartbeat detected - end the session
             println!("Duplicate heartbeat detected, ending session");
@@ -731,7 +789,7 @@ async fn get_latest_heartbeat(
             session.editor = None;
             session.language = None;
             session.entity = None;
-            
+
             // Clear Discord RPC activity
             let mut discord_rpc = discord_rpc_state.lock().await;
             if discord_rpc.is_connected() {
@@ -748,11 +806,13 @@ async fn get_latest_heartbeat(
             session.editor = heartbeat.editor.clone();
             session.language = heartbeat.language.clone();
             session.entity = heartbeat.entity.clone();
-            
+
             // Update Discord RPC with session start time
             let mut discord_rpc = discord_rpc_state.lock().await;
             if discord_rpc.is_connected() {
-                if let Err(e) = discord_rpc.update_activity_from_session(heartbeat, heartbeat.timestamp) {
+                if let Err(e) =
+                    discord_rpc.update_activity_from_session(heartbeat, heartbeat.timestamp)
+                {
                     eprintln!("Failed to update Discord RPC: {}", e);
                 }
             }
@@ -764,11 +824,14 @@ async fn get_latest_heartbeat(
             session.editor = heartbeat.editor.clone();
             session.language = heartbeat.language.clone();
             session.entity = heartbeat.entity.clone();
-            
+
             // Update Discord RPC with session start time
             let mut discord_rpc = discord_rpc_state.lock().await;
             if discord_rpc.is_connected() {
-                if let Err(e) = discord_rpc.update_activity_from_session(heartbeat, session.start_time.unwrap_or(heartbeat.timestamp)) {
+                if let Err(e) = discord_rpc.update_activity_from_session(
+                    heartbeat,
+                    session.start_time.unwrap_or(heartbeat.timestamp),
+                ) {
                     eprintln!("Failed to update Discord RPC: {}", e);
                 }
             }
@@ -783,7 +846,7 @@ async fn get_latest_heartbeat(
             session.editor = None;
             session.language = None;
             session.entity = None;
-            
+
             // Clear Discord RPC activity
             let mut discord_rpc = discord_rpc_state.lock().await;
             if discord_rpc.is_connected() {
@@ -803,7 +866,7 @@ async fn get_latest_heartbeat(
             session.editor = None;
             session.language = None;
             session.entity = None;
-            
+
             // Clear Discord RPC activity
             let mut discord_rpc = discord_rpc_state.lock().await;
             if discord_rpc.is_connected() {
@@ -811,7 +874,7 @@ async fn get_latest_heartbeat(
             }
         }
     }
-    
+
     Ok(heartbeat_response)
 }
 
@@ -821,14 +884,16 @@ async fn ping_presence_connection(
     state: State<'_, Arc<tauri::async_runtime::Mutex<AuthState>>>,
 ) -> Result<(), String> {
     let auth_state = state.lock().await;
-    
+
     if !auth_state.is_authenticated {
         return Err("Not authenticated".to_string());
     }
-    
-    let access_token = auth_state.access_token.as_ref()
+
+    let access_token = auth_state
+        .access_token
+        .as_ref()
         .ok_or("No access token available")?;
-    
+
     let client = reqwest::Client::new();
     let response = client
         .post(&format!("{}/api/v1/presence/ping", api_config.base_url))
@@ -836,12 +901,15 @@ async fn ping_presence_connection(
         .send()
         .await
         .map_err(|e| format!("Failed to ping presence connection: {}", e))?;
-    
+
     if !response.status().is_success() {
-        let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown error".to_string());
         return Err(format!("Presence ping failed: {}", error_text));
     }
-    
+
     Ok(())
 }
 
@@ -856,7 +924,7 @@ async fn get_hackatime_directories() -> Result<serde_json::Value, String> {
     let config_dir = get_hackatime_config_dir()?;
     let logs_dir = get_hackatime_logs_dir()?;
     let data_dir = get_hackatime_data_dir()?;
-    
+
     Ok(serde_json::json!({
         "config_dir": config_dir.to_string_lossy(),
         "logs_dir": logs_dir.to_string_lossy(),
@@ -874,7 +942,7 @@ async fn cleanup_old_sessions(days_old: i64) -> Result<(), String> {
 #[tauri::command]
 async fn get_session_stats() -> Result<serde_json::Value, String> {
     let platform_info = get_platform_info()?;
-    
+
     Ok(serde_json::json!({
         "platform_info": platform_info,
         "database_path": get_hackatime_config_dir()?.join("sessions.db").to_string_lossy(),
@@ -892,7 +960,7 @@ async fn test_database_connection() -> Result<serde_json::Value, String> {
     let config_dir = get_hackatime_config_dir()?;
     let logs_dir = get_hackatime_logs_dir()?;
     let data_dir = get_hackatime_data_dir()?;
-    
+
     // Test database connection
     let db_result = Database::new().await;
     let db_success = db_result.is_ok();
@@ -901,7 +969,7 @@ async fn test_database_connection() -> Result<serde_json::Value, String> {
     } else {
         None
     };
-    
+
     Ok(serde_json::json!({
         "directories": {
             "config_exists": config_dir.exists(),
@@ -1002,30 +1070,40 @@ async fn get_projects(
     state: State<'_, Arc<tauri::async_runtime::Mutex<AuthState>>>,
 ) -> Result<serde_json::Value, String> {
     let auth_state = state.lock().await;
-    
+
     if !auth_state.is_authenticated {
         return Err("Not authenticated".to_string());
     }
-    
-    let access_token = auth_state.access_token.as_ref()
+
+    let access_token = auth_state
+        .access_token
+        .as_ref()
         .ok_or("No access token available")?;
-    
+
     let client = reqwest::Client::new();
     let response = client
-        .get(&format!("{}/api/v1/authenticated/projects", api_config.base_url))
+        .get(&format!(
+            "{}/api/v1/authenticated/projects",
+            api_config.base_url
+        ))
         .bearer_auth(access_token)
         .send()
         .await
         .map_err(|e| format!("Failed to fetch projects: {}", e))?;
-    
+
     if !response.status().is_success() {
-        let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown error".to_string());
         return Err(format!("Projects request failed: {}", error_text));
     }
-    
-    let projects_response: serde_json::Value = response.json().await
+
+    let projects_response: serde_json::Value = response
+        .json()
+        .await
         .map_err(|e| format!("Failed to parse projects response: {}", e))?;
-    
+
     Ok(projects_response)
 }
 
@@ -1036,30 +1114,41 @@ async fn get_project_details(
     state: State<'_, Arc<tauri::async_runtime::Mutex<AuthState>>>,
 ) -> Result<serde_json::Value, String> {
     let auth_state = state.lock().await;
-    
+
     if !auth_state.is_authenticated {
         return Err("Not authenticated".to_string());
     }
-    
-    let access_token = auth_state.access_token.as_ref()
+
+    let access_token = auth_state
+        .access_token
+        .as_ref()
         .ok_or("No access token available")?;
-    
+
     let client = reqwest::Client::new();
     let response = client
-        .get(&format!("{}/api/v1/authenticated/projects/{}", api_config.base_url, urlencoding::encode(&project_name)))
+        .get(&format!(
+            "{}/api/v1/authenticated/projects/{}",
+            api_config.base_url,
+            urlencoding::encode(&project_name)
+        ))
         .bearer_auth(access_token)
         .send()
         .await
         .map_err(|e| format!("Failed to fetch project details: {}", e))?;
-    
+
     if !response.status().is_success() {
-        let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown error".to_string());
         return Err(format!("Project details request failed: {}", error_text));
     }
-    
-    let project_response: serde_json::Value = response.json().await
+
+    let project_response: serde_json::Value = response
+        .json()
+        .await
         .map_err(|e| format!("Failed to parse project response: {}", e))?;
-    
+
     Ok(project_response)
 }
 
@@ -1077,7 +1166,7 @@ async fn set_discord_rpc_enabled(
     discord_rpc_state: State<'_, Arc<tauri::async_runtime::Mutex<DiscordRpcService>>>,
 ) -> Result<(), String> {
     let mut rpc_service = discord_rpc_state.lock().await;
-    
+
     if enabled {
         // Try to connect with a default client ID (you might want to make this configurable)
         let default_client_id = "1234567890123456789"; // Replace with your Discord app client ID
@@ -1142,35 +1231,45 @@ async fn get_statistics_data(
     state: State<'_, Arc<tauri::async_runtime::Mutex<AuthState>>>,
 ) -> Result<StatisticsData, String> {
     let auth_state = state.lock().await;
-    
+
     if !auth_state.is_authenticated {
         return Err("Not authenticated".to_string());
     }
-    
-    let access_token = auth_state.access_token.as_ref()
+
+    let access_token = auth_state
+        .access_token
+        .as_ref()
         .ok_or("No access token available")?;
-    
+
     let client = reqwest::Client::new();
-    
+
     // Get dashboard stats from Ruby API
     let response = client
-        .get(&format!("{}/api/v1/authenticated/dashboard_stats", api_config.base_url))
+        .get(&format!(
+            "{}/api/v1/authenticated/dashboard_stats",
+            api_config.base_url
+        ))
         .bearer_auth(access_token)
         .send()
         .await
         .map_err(|e| format!("Failed to fetch dashboard stats: {}", e))?;
-    
+
     if !response.status().is_success() {
-        let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown error".to_string());
         return Err(format!("Dashboard stats request failed: {}", error_text));
     }
-    
-    let dashboard_stats: serde_json::Value = response.json().await
+
+    let dashboard_stats: serde_json::Value = response
+        .json()
+        .await
         .map_err(|e| format!("Failed to parse dashboard stats: {}", e))?;
-    
+
     // Process the data in Rust for heavy computations
     let statistics = process_statistics_data(dashboard_stats).await?;
-    
+
     Ok(statistics)
 }
 
@@ -1178,8 +1277,12 @@ async fn get_statistics_data(
 #[tauri::command]
 async fn show_window(app: tauri::AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("main") {
-        window.show().map_err(|e| format!("Failed to show window: {}", e))?;
-        window.set_focus().map_err(|e| format!("Failed to focus window: {}", e))?;
+        window
+            .show()
+            .map_err(|e| format!("Failed to show window: {}", e))?;
+        window
+            .set_focus()
+            .map_err(|e| format!("Failed to focus window: {}", e))?;
     }
     Ok(())
 }
@@ -1187,7 +1290,9 @@ async fn show_window(app: tauri::AppHandle) -> Result<(), String> {
 #[tauri::command]
 async fn hide_window(app: tauri::AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("main") {
-        window.hide().map_err(|e| format!("Failed to hide window: {}", e))?;
+        window
+            .hide()
+            .map_err(|e| format!("Failed to hide window: {}", e))?;
     }
     Ok(())
 }
@@ -1196,10 +1301,16 @@ async fn hide_window(app: tauri::AppHandle) -> Result<(), String> {
 async fn toggle_window(app: tauri::AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("main") {
         if window.is_visible().unwrap_or(false) {
-            window.hide().map_err(|e| format!("Failed to hide window: {}", e))?;
+            window
+                .hide()
+                .map_err(|e| format!("Failed to hide window: {}", e))?;
         } else {
-            window.show().map_err(|e| format!("Failed to show window: {}", e))?;
-            window.set_focus().map_err(|e| format!("Failed to focus window: {}", e))?;
+            window
+                .show()
+                .map_err(|e| format!("Failed to show window: {}", e))?;
+            window
+                .set_focus()
+                .map_err(|e| format!("Failed to focus window: {}", e))?;
         }
     }
     Ok(())
@@ -1214,7 +1325,7 @@ async fn get_app_status(
     let auth = auth_state.lock().await;
     let session = session_state.lock().await;
     let discord_rpc = discord_rpc_state.lock().await;
-    
+
     Ok(serde_json::json!({
         "authenticated": auth.is_authenticated,
         "session_active": session.is_active,
@@ -1235,24 +1346,30 @@ async fn get_app_status(
     }))
 }
 
-async fn process_statistics_data(dashboard_stats: serde_json::Value) -> Result<StatisticsData, String> {
+async fn process_statistics_data(
+    dashboard_stats: serde_json::Value,
+) -> Result<StatisticsData, String> {
     // Extract data from dashboard stats
     let current_streak = dashboard_stats["current_streak"].as_u64().unwrap_or(0);
-    let weekly_time = dashboard_stats["weekly_stats"]["time_coded_seconds"].as_u64().unwrap_or(0) as f64;
-    let all_time_time = dashboard_stats["all_time_stats"]["time_coded_seconds"].as_u64().unwrap_or(0) as f64;
-    
+    let weekly_time = dashboard_stats["weekly_stats"]["time_coded_seconds"]
+        .as_u64()
+        .unwrap_or(0) as f64;
+    let all_time_time = dashboard_stats["all_time_stats"]["time_coded_seconds"]
+        .as_u64()
+        .unwrap_or(0) as f64;
+
     // Calculate trends (comparing this week to last week)
     let trends = calculate_trends(weekly_time, current_streak).await;
-    
+
     // Generate chart data
     let charts = generate_chart_data(&dashboard_stats).await?;
-    
+
     // Generate insights
     let insights = generate_insights(weekly_time, all_time_time, current_streak).await;
-    
+
     // Analyze programmer class
     let programmer_class = analyze_programmer_class(&dashboard_stats).await;
-    
+
     Ok(StatisticsData {
         trends,
         charts,
@@ -1263,11 +1380,15 @@ async fn process_statistics_data(dashboard_stats: serde_json::Value) -> Result<S
 
 async fn calculate_trends(weekly_time: f64, current_streak: u64) -> Vec<TrendStatistic> {
     let mut trends = Vec::new();
-    
+
     // Simulate last week's data (in a real app, you'd fetch this from the API)
     let last_week_time = weekly_time * 0.85; // Simulate 15% increase
-    let last_week_streak = if current_streak > 0 { current_streak - 1 } else { 0 };
-    
+    let last_week_streak = if current_streak > 0 {
+        current_streak - 1
+    } else {
+        0
+    };
+
     // Weekly coding time trend
     let time_change = ((weekly_time - last_week_time) / last_week_time * 100.0).round() as i32;
     let time_trend = if time_change > 0 {
@@ -1302,7 +1423,7 @@ async fn calculate_trends(weekly_time: f64, current_streak: u64) -> Vec<TrendSta
         }
     };
     trends.push(time_trend);
-    
+
     // Streak trend
     let streak_change = current_streak as i32 - last_week_streak as i32;
     let streak_trend = if streak_change > 0 {
@@ -1337,12 +1458,12 @@ async fn calculate_trends(weekly_time: f64, current_streak: u64) -> Vec<TrendSta
         }
     };
     trends.push(streak_trend);
-    
+
     // Focus time trend (replaces productivity)
     let daily_average = weekly_time / 3600.0 / 7.0;
     let last_week_daily = daily_average * 0.9;
     let focus_change = ((daily_average - last_week_daily) / last_week_daily * 100.0).round() as i32;
-    
+
     let focus_trend = if focus_change > 0 {
         TrendStatistic {
             title: "Daily Focus Time".to_string(),
@@ -1375,25 +1496,27 @@ async fn calculate_trends(weekly_time: f64, current_streak: u64) -> Vec<TrendSta
         }
     };
     trends.push(focus_trend);
-    
+
     trends
 }
 
-async fn generate_chart_data(dashboard_stats: &serde_json::Value) -> Result<Vec<ChartData>, String> {
+async fn generate_chart_data(
+    dashboard_stats: &serde_json::Value,
+) -> Result<Vec<ChartData>, String> {
     let mut charts = Vec::new();
-    
+
     // Daily hours chart
     if let Some(daily_hours) = dashboard_stats["weekly_stats"]["daily_hours"].as_object() {
         let mut chart_data = Vec::new();
         let mut labels = Vec::new();
-        
+
         for (_date, day_data) in daily_hours {
             if let Some(hours) = day_data["hours"].as_f64() {
                 labels.push(day_data["day_name"].as_str().unwrap_or("").to_string());
                 chart_data.push(hours);
             }
         }
-        
+
         charts.push(ChartData {
             id: "daily_hours".to_string(),
             title: "Daily Coding Hours".to_string(),
@@ -1412,14 +1535,16 @@ async fn generate_chart_data(dashboard_stats: &serde_json::Value) -> Result<Vec<
             color_scheme: "orange".to_string(),
         });
     }
-    
+
     // Language distribution pie chart
     if let Some(top_language) = dashboard_stats["weekly_stats"]["top_language"].as_object() {
         let language_name = top_language["name"].as_str().unwrap_or("Unknown");
         let language_seconds = top_language["seconds"].as_u64().unwrap_or(0) as f64;
-        let total_seconds = dashboard_stats["weekly_stats"]["time_coded_seconds"].as_u64().unwrap_or(1) as f64;
+        let total_seconds = dashboard_stats["weekly_stats"]["time_coded_seconds"]
+            .as_u64()
+            .unwrap_or(1) as f64;
         let percentage = (language_seconds / total_seconds * 100.0).round() as i32;
-        
+
         charts.push(ChartData {
             id: "language_distribution".to_string(),
             title: "Top Language".to_string(),
@@ -1436,24 +1561,31 @@ async fn generate_chart_data(dashboard_stats: &serde_json::Value) -> Result<Vec<
             color_scheme: "orange".to_string(),
         });
     }
-    
+
     // Weekly trend line chart
     let mut trend_data = Vec::new();
     let mut trend_labels = Vec::new();
-    
+
     // Simulate 4 weeks of data
     for week in 0..4 {
         let week_hours = if week == 3 {
-            dashboard_stats["weekly_stats"]["time_coded_seconds"].as_u64().unwrap_or(0) as f64 / 3600.0
+            dashboard_stats["weekly_stats"]["time_coded_seconds"]
+                .as_u64()
+                .unwrap_or(0) as f64
+                / 3600.0
         } else {
             // Simulate previous weeks
-            (dashboard_stats["weekly_stats"]["time_coded_seconds"].as_u64().unwrap_or(0) as f64 / 3600.0) * (0.8 + (week as f64 * 0.1))
+            (dashboard_stats["weekly_stats"]["time_coded_seconds"]
+                .as_u64()
+                .unwrap_or(0) as f64
+                / 3600.0)
+                * (0.8 + (week as f64 * 0.1))
         };
-        
+
         trend_data.push(week_hours);
         trend_labels.push(format!("Week {}", 4 - week));
     }
-    
+
     charts.push(ChartData {
         id: "weekly_trend".to_string(),
         title: "Weekly Trend".to_string(),
@@ -1472,13 +1604,17 @@ async fn generate_chart_data(dashboard_stats: &serde_json::Value) -> Result<Vec<
         period: "Last 4 weeks".to_string(),
         color_scheme: "orange".to_string(),
     });
-    
+
     Ok(charts)
 }
 
-async fn generate_insights(weekly_time: f64, all_time_time: f64, current_streak: u64) -> Vec<Insight> {
+async fn generate_insights(
+    weekly_time: f64,
+    all_time_time: f64,
+    current_streak: u64,
+) -> Vec<Insight> {
     let mut insights = Vec::new();
-    
+
     // Coding consistency insight
     let daily_average = weekly_time / 3600.0 / 7.0;
     let consistency_insight = if daily_average >= 2.0 {
@@ -1510,7 +1646,7 @@ async fn generate_insights(weekly_time: f64, all_time_time: f64, current_streak:
         }
     };
     insights.push(consistency_insight);
-    
+
     // Streak insight
     let streak_insight = if current_streak >= 30 {
         Insight {
@@ -1550,13 +1686,14 @@ async fn generate_insights(weekly_time: f64, all_time_time: f64, current_streak:
         }
     };
     insights.push(streak_insight);
-    
+
     // Total time insight
     let total_hours = all_time_time / 3600.0;
     let total_insight = if total_hours >= 1000.0 {
         Insight {
             title: "Coding Veteran".to_string(),
-            description: "You've logged over 1000 hours of coding! Incredible dedication!".to_string(),
+            description: "You've logged over 1000 hours of coding! Incredible dedication!"
+                .to_string(),
             value: format!("{:.0}h total", total_hours),
             trend: "Expert level".to_string(),
             icon: "".to_string(),
@@ -1591,7 +1728,7 @@ async fn generate_insights(weekly_time: f64, all_time_time: f64, current_streak:
         }
     };
     insights.push(total_insight);
-    
+
     insights
 }
 
@@ -1600,66 +1737,83 @@ async fn analyze_programmer_class(dashboard_stats: &serde_json::Value) -> Progra
     let config_path = std::env::current_dir()
         .unwrap_or_default()
         .join("programmer_classes.json");
-    
+
     let config_content = match std::fs::read_to_string(&config_path) {
         Ok(content) => content,
         Err(_) => {
             // Fallback to default class if config file is not found
             return ProgrammerClass {
                 class_name: "Code Explorer".to_string(),
-                description: "An enthusiastic learner discovering the vast world of programming.".to_string(),
-                technologies: vec!["HTML".to_string(), "CSS".to_string(), "JavaScript".to_string()],
+                description: "An enthusiastic learner discovering the vast world of programming."
+                    .to_string(),
+                technologies: vec![
+                    "HTML".to_string(),
+                    "CSS".to_string(),
+                    "JavaScript".to_string(),
+                ],
                 level: "Learning".to_string(),
                 color: "#9C27B0".to_string(),
             };
         }
     };
-    
+
     let config: serde_json::Value = match serde_json::from_str(&config_content) {
         Ok(config) => config,
         Err(_) => {
             // Fallback to default class if config is invalid
             return ProgrammerClass {
                 class_name: "Code Explorer".to_string(),
-                description: "An enthusiastic learner discovering the vast world of programming.".to_string(),
-                technologies: vec!["HTML".to_string(), "CSS".to_string(), "JavaScript".to_string()],
+                description: "An enthusiastic learner discovering the vast world of programming."
+                    .to_string(),
+                technologies: vec![
+                    "HTML".to_string(),
+                    "CSS".to_string(),
+                    "JavaScript".to_string(),
+                ],
                 level: "Learning".to_string(),
                 color: "#9C27B0".to_string(),
             };
         }
     };
-    
+
     let total_hours = dashboard_stats["all_time_stats"]["time_coded_seconds"]
         .as_u64()
-        .unwrap_or(0) as f64 / 3600.0;
-    
+        .unwrap_or(0) as f64
+        / 3600.0;
+
     let current_streak = dashboard_stats["current_streak"].as_u64().unwrap_or(0);
-    
+
     // Simulate language analysis - in a real app, you'd analyze actual language data from the API
     let simulated_languages = simulate_language_analysis(total_hours, current_streak);
-    
+
     // Find the best matching class
     let empty_vec = vec![];
     let classes = config["classes"].as_array().unwrap_or(&empty_vec);
     let mut best_match: Option<&serde_json::Value> = None;
     let mut best_score = 0.0;
-    
+
     for class in classes {
         if let Some(conditions) = class["conditions"].as_object() {
-            let score = calculate_class_score(&conditions, &simulated_languages, total_hours, current_streak);
+            let score = calculate_class_score(
+                &conditions,
+                &simulated_languages,
+                total_hours,
+                current_streak,
+            );
             if score > best_score {
                 best_score = score;
                 best_match = Some(class);
             }
         }
     }
-    
+
     // Return the best match or default
     if let Some(class) = best_match {
         ProgrammerClass {
             class_name: class["name"].as_str().unwrap_or("Unknown").to_string(),
             description: class["description"].as_str().unwrap_or("").to_string(),
-            technologies: class["technologies"].as_array()
+            technologies: class["technologies"]
+                .as_array()
                 .unwrap_or(&vec![])
                 .iter()
                 .filter_map(|t| t.as_str())
@@ -1672,8 +1826,13 @@ async fn analyze_programmer_class(dashboard_stats: &serde_json::Value) -> Progra
         // Default fallback
         ProgrammerClass {
             class_name: "Code Explorer".to_string(),
-            description: "An enthusiastic learner discovering the vast world of programming.".to_string(),
-            technologies: vec!["HTML".to_string(), "CSS".to_string(), "JavaScript".to_string()],
+            description: "An enthusiastic learner discovering the vast world of programming."
+                .to_string(),
+            technologies: vec![
+                "HTML".to_string(),
+                "CSS".to_string(),
+                "JavaScript".to_string(),
+            ],
             level: "Learning".to_string(),
             color: "#9C27B0".to_string(),
         }
@@ -1684,7 +1843,7 @@ fn simulate_language_analysis(total_hours: f64, current_streak: u64) -> Vec<Stri
     // Simulate language usage based on coding patterns
     // In a real app, this would come from actual language data from the API
     let mut languages = Vec::new();
-    
+
     // Simulate language distribution based on experience level
     if total_hours >= 100.0 {
         // Experienced developers
@@ -1708,32 +1867,38 @@ fn simulate_language_analysis(total_hours: f64, current_streak: u64) -> Vec<Stri
         languages.push("CSS".to_string());
         languages.push("JavaScript".to_string());
     }
-    
+
     languages
 }
 
-fn calculate_class_score(conditions: &serde_json::Map<String, serde_json::Value>, 
-                       languages: &[String], 
-                       total_hours: f64, 
-                       current_streak: u64) -> f64 {
+fn calculate_class_score(
+    conditions: &serde_json::Map<String, serde_json::Value>,
+    languages: &[String],
+    total_hours: f64,
+    current_streak: u64,
+) -> f64 {
     let mut score = 0.0;
-    
+
     // Check primary languages match
-    if let Some(primary_langs) = conditions.get("primary_languages").and_then(|v| v.as_array()) {
-        let primary_lang_count = primary_langs.iter()
+    if let Some(primary_langs) = conditions
+        .get("primary_languages")
+        .and_then(|v| v.as_array())
+    {
+        let primary_lang_count = primary_langs
+            .iter()
             .filter_map(|lang| lang.as_str())
             .filter(|lang| languages.contains(&lang.to_string()))
             .count();
         score += primary_lang_count as f64 * 2.0; // Weight primary languages heavily
     }
-    
+
     // Check language count for polyglot
     if let Some(lang_count) = conditions.get("language_count").and_then(|v| v.as_u64()) {
         if languages.len() as u64 >= lang_count {
             score += 3.0; // Bonus for being a polyglot
         }
     }
-    
+
     // Check minimum hours
     if let Some(min_hours) = conditions.get("min_hours").and_then(|v| v.as_f64()) {
         if total_hours >= min_hours {
@@ -1742,7 +1907,7 @@ fn calculate_class_score(conditions: &serde_json::Map<String, serde_json::Value>
             score -= 0.5; // Penalty for not meeting minimum
         }
     }
-    
+
     // Check maximum hours for beginners
     if let Some(max_hours) = conditions.get("max_hours").and_then(|v| v.as_f64()) {
         if total_hours <= max_hours {
@@ -1751,21 +1916,22 @@ fn calculate_class_score(conditions: &serde_json::Map<String, serde_json::Value>
             score -= 0.5; // Penalty for being too experienced
         }
     }
-    
+
     // Check minimum streak
     if let Some(min_streak) = conditions.get("min_streak").and_then(|v| v.as_u64()) {
         if current_streak >= min_streak {
             score += 0.5;
         }
     }
-    
+
     score
 }
-
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_deep_link::init())
         .manage(ApiConfig::default())

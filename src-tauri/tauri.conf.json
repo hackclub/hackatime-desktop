@@ -7,7 +7,8 @@
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "pnpm build",
-    "frontendDist": "../dist"
+    "frontendDist": "../dist",
+    "features": ["updater"]
   },
   "app": {
     "windows": [
@@ -32,13 +33,19 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": "v1Compatible",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "macOS": {
+      "entitlements": "entitlements.plist",
+      "hardenedRuntime": true,
+      "minimumSystemVersion": "10.15"
+    }
   },
   "plugins": {
     "shell": {
@@ -46,6 +53,10 @@
     },
     "deepLink": {
       "schemes": ["kubetime"]
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdERjg4QTFCNTJFMDk0MUQKUldRZGxPQlNHNHI0ZlRkMDN0MGI1MnllY1dUVStZalV3dVdhcTFuREx5SGtBc0txQ2xnTWs3WU4K",
+      "endpoints": ["https://pub-d35fbe65a5b5426bb6d62ff02a8c7d03.r2.dev/update-manifest.json"]
     }
   }
 }

@@ -40,6 +40,49 @@
               <span class="text-text-secondary">Build</span>
               <span class="text-text-primary font-medium">Development</span>
             </div>
+            <div class="flex justify-between items-center">
+              <span class="text-text-secondary">Updates</span>
+              <div class="flex items-center gap-2">
+                <span v-if="updateStatus === 'checking'" class="text-text-secondary text-sm">Checking...</span>
+                <span v-else-if="updateStatus === 'available'" class="text-accent-primary text-sm">Update available</span>
+                <span v-else-if="updateStatus === 'latest'" class="text-green-500 text-sm">Up to date</span>
+                <span v-else-if="updateStatus === 'error'" class="text-red-500 text-sm">Check failed</span>
+                <button
+                  @click="checkForUpdates"
+                  :disabled="updateStatus === 'checking'"
+                  class="px-3 py-1 text-xs bg-accent-primary text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {{ updateStatus === 'checking' ? 'Checking...' : 'Check for Updates' }}
+                </button>
+              </div>
+            </div>
+            <div v-if="updateInfo" class="mt-4 p-4 bg-bg-tertiary rounded-lg border border-border-secondary">
+              <div class="space-y-2">
+                <div class="flex justify-between">
+                  <span class="text-text-secondary text-sm">New Version</span>
+                  <span class="text-text-primary text-sm font-medium">{{ updateInfo.version }}</span>
+                </div>
+                <div v-if="updateInfo.notes" class="text-text-secondary text-sm">
+                  <p class="font-medium mb-1">Release Notes:</p>
+                  <p class="whitespace-pre-wrap">{{ updateInfo.notes }}</p>
+                </div>
+                <div class="flex gap-2 mt-3">
+                  <button
+                    @click="downloadAndInstallUpdate"
+                    :disabled="isInstallingUpdate"
+                    class="px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                  >
+                    {{ isInstallingUpdate ? 'Installing...' : 'Install Update' }}
+                  </button>
+                  <button
+                    @click="updateInfo = null"
+                    class="px-4 py-2 bg-bg-primary border border-border-secondary text-text-primary rounded-lg hover:bg-bg-secondary transition-colors text-sm"
+                  >
+                    Later
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -141,6 +184,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
+import { check } from '@tauri-apps/plugin-updater';
+import { relaunch } from '@tauri-apps/plugin-process';
 import type { Theme } from '../composables/useTheme'
 
 defineProps<{
@@ -157,6 +202,15 @@ const emit = defineEmits<{
 
 const discordRpcEnabled = ref(false);
 const isLoading = ref(false);
+
+// Update functionality
+const updateStatus = ref<'idle' | 'checking' | 'available' | 'latest' | 'error'>('idle');
+const updateInfo = ref<{
+  version: string;
+  notes?: string;
+  date?: string;
+} | null>(null);
+const isInstallingUpdate = ref(false);
 
 async function loadDiscordRpcState() {
   try {
@@ -185,6 +239,68 @@ async function toggleDiscordRpc() {
 
 function copyApiKey() {
   emit('copyApiKey')
+}
+
+// Update functions
+async function checkForUpdates() {
+  if (updateStatus.value === 'checking') return;
+  
+  updateStatus.value = 'checking';
+  updateInfo.value = null;
+  
+  try {
+    const update = await check();
+    
+    if (update) {
+      updateStatus.value = 'available';
+      updateInfo.value = {
+        version: update.version,
+        notes: update.body,
+        date: update.date
+      };
+    } else {
+      updateStatus.value = 'latest';
+    }
+  } catch (error) {
+    console.error('Failed to check for updates:', error);
+    updateStatus.value = 'error';
+  }
+}
+
+async function downloadAndInstallUpdate() {
+  if (!updateInfo.value || isInstallingUpdate.value) return;
+  
+  isInstallingUpdate.value = true;
+  
+  try {
+    const update = await check();
+    if (update) {
+      let downloaded = 0;
+      let contentLength = 0;
+      
+      await update.downloadAndInstall((event) => {
+        switch (event.event) {
+          case 'Started':
+            contentLength = event.data.contentLength;
+            console.log(`Started downloading ${event.data.contentLength} bytes`);
+            break;
+          case 'Progress':
+            downloaded += event.data.chunkLength;
+            console.log(`Downloaded ${downloaded} from ${contentLength}`);
+            break;
+          case 'Finished':
+            console.log('Download finished');
+            break;
+        }
+      });
+      
+      console.log('Update installed, restarting...');
+      await relaunch();
+    }
+  } catch (error) {
+    console.error('Failed to install update:', error);
+    isInstallingUpdate.value = false;
+  }
 }
 
 // Load Discord RPC state on mount
