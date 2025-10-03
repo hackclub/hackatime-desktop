@@ -1,0 +1,243 @@
+{
+  "classes": [
+    {
+      "name": "The Rustacean",
+      "description": "A fearless systems programmer who embraces memory safety and zero-cost abstractions.",
+      "level": "Legendary",
+      "color": "#CE422B",
+      "technologies": ["Rust", "Cargo", "Tokio", "Serde"],
+      "conditions": {
+        "primary_languages": ["Rust"],
+        "min_hours": 50,
+        "min_streak": 7
+      }
+    },
+    {
+      "name": "The Pythonista",
+      "description": "A versatile developer who believes in the beauty of clean, readable code.",
+      "level": "Expert",
+      "color": "#3776AB",
+      "technologies": ["Python", "Django", "Flask", "Pandas", "NumPy"],
+      "conditions": {
+        "primary_languages": ["Python"],
+        "min_hours": 30,
+        "min_streak": 5
+      }
+    },
+    {
+      "name": "The JavaScript Ninja",
+      "description": "A master of the web who can make anything dance in the browser.",
+      "level": "Advanced",
+      "color": "#F7DF1E",
+      "technologies": ["JavaScript", "Node.js", "React", "Vue.js", "TypeScript"],
+      "conditions": {
+        "primary_languages": ["JavaScript", "TypeScript"],
+        "min_hours": 20,
+        "min_streak": 3
+      }
+    },
+    {
+      "name": "The Go Gopher",
+      "description": "A pragmatic developer who values simplicity and concurrency.",
+      "level": "Advanced",
+      "color": "#00ADD8",
+      "technologies": ["Go", "Goroutines", "Channels", "Gin", "Echo"],
+      "conditions": {
+        "primary_languages": ["Go"],
+        "min_hours": 25,
+        "min_streak": 4
+      }
+    },
+    {
+      "name": "The C++ Wizard",
+      "description": "A master of performance who wields templates and memory management like a sorcerer.",
+      "level": "Expert",
+      "color": "#00599C",
+      "technologies": ["C++", "STL", "Boost", "CMake", "Conan"],
+      "conditions": {
+        "primary_languages": ["C++", "C"],
+        "min_hours": 40,
+        "min_streak": 6
+      }
+    },
+    {
+      "name": "The Java Architect",
+      "description": "A enterprise developer who builds robust, scalable systems.",
+      "level": "Expert",
+      "color": "#ED8B00",
+      "technologies": ["Java", "Spring", "Maven", "JUnit", "Hibernate"],
+      "conditions": {
+        "primary_languages": ["Java"],
+        "min_hours": 35,
+        "min_streak": 5
+      }
+    },
+    {
+      "name": "The Swift Enthusiast",
+      "description": "An iOS developer who crafts beautiful, performant mobile experiences.",
+      "level": "Advanced",
+      "color": "#FA7343",
+      "technologies": ["Swift", "SwiftUI", "UIKit", "Combine", "Core Data"],
+      "conditions": {
+        "primary_languages": ["Swift"],
+        "min_hours": 20,
+        "min_streak": 3
+      }
+    },
+    {
+      "name": "The Kotlin Craftsman",
+      "description": "A modern Android developer who embraces null safety and functional programming.",
+      "level": "Advanced",
+      "color": "#7F52FF",
+      "technologies": ["Kotlin", "Android", "Jetpack Compose", "Coroutines", "Ktor"],
+      "conditions": {
+        "primary_languages": ["Kotlin"],
+        "min_hours": 25,
+        "min_streak": 4
+      }
+    },
+    {
+      "name": "The Ruby Gem",
+      "description": "A developer who values developer happiness and elegant syntax.",
+      "level": "Intermediate",
+      "color": "#CC342D",
+      "technologies": ["Ruby", "Rails", "RSpec", "Bundler", "Sinatra"],
+      "conditions": {
+        "primary_languages": ["Ruby"],
+        "min_hours": 15,
+        "min_streak": 3
+      }
+    },
+    {
+      "name": "The PHP Artisan",
+      "description": "A web developer who powers the internet with dynamic content.",
+      "level": "Intermediate",
+      "color": "#777BB4",
+      "technologies": ["PHP", "Laravel", "Composer", "Symfony", "WordPress"],
+      "conditions": {
+        "primary_languages": ["PHP"],
+        "min_hours": 15,
+        "min_streak": 3
+      }
+    },
+    {
+      "name": "The C# Sharp",
+      "description": "A Microsoft ecosystem developer who builds enterprise solutions.",
+      "level": "Advanced",
+      "color": "#239120",
+      "technologies": ["C#", ".NET", "ASP.NET", "Entity Framework", "Xamarin"],
+      "conditions": {
+        "primary_languages": ["C#"],
+        "min_hours": 25,
+        "min_streak": 4
+      }
+    },
+    {
+      "name": "The Scala Scholar",
+      "description": "A functional programming enthusiast who combines OOP and FP paradigms.",
+      "level": "Expert",
+      "color": "#DC322F",
+      "technologies": ["Scala", "Akka", "Play Framework", "SBT", "Cats"],
+      "conditions": {
+        "primary_languages": ["Scala"],
+        "min_hours": 30,
+        "min_streak": 5
+      }
+    },
+    {
+      "name": "The Haskell Wizard",
+      "description": "A pure functional programmer who thinks in types and monads.",
+      "level": "Legendary",
+      "color": "#5D4F85",
+      "technologies": ["Haskell", "GHC", "Stack", "Cabal", "Lens"],
+      "conditions": {
+        "primary_languages": ["Haskell"],
+        "min_hours": 20,
+        "min_streak": 3
+      }
+    },
+    {
+      "name": "The Clojure Conjurer",
+      "description": "A Lisp enthusiast who embraces immutability and functional programming.",
+      "level": "Advanced",
+      "color": "#5881D8",
+      "technologies": ["Clojure", "ClojureScript", "Leiningen", "Ring", "Reagent"],
+      "conditions": {
+        "primary_languages": ["Clojure"],
+        "min_hours": 15,
+        "min_streak": 3
+      }
+    },
+    {
+      "name": "The Elixir Alchemist",
+      "description": "A concurrent programmer who builds fault-tolerant distributed systems.",
+      "level": "Advanced",
+      "color": "#4B275F",
+      "technologies": ["Elixir", "Phoenix", "OTP", "Mix", "Ecto"],
+      "conditions": {
+        "primary_languages": ["Elixir"],
+        "min_hours": 20,
+        "min_streak": 3
+      }
+    },
+    {
+      "name": "The R Researcher",
+      "description": "A data scientist who uncovers insights from complex datasets.",
+      "level": "Expert",
+      "color": "#276DC3",
+      "technologies": ["R", "Shiny", "ggplot2", "dplyr", "RStudio"],
+      "conditions": {
+        "primary_languages": ["R"],
+        "min_hours": 25,
+        "min_streak": 4
+      }
+    },
+    {
+      "name": "The Julia Scientist",
+      "description": "A numerical computing expert who combines performance with ease of use.",
+      "level": "Advanced",
+      "color": "#9558B2",
+      "technologies": ["Julia", "Plots.jl", "DataFrames.jl", "Flux.jl", "Genie.jl"],
+      "conditions": {
+        "primary_languages": ["Julia"],
+        "min_hours": 15,
+        "min_streak": 3
+      }
+    },
+    {
+      "name": "The Assembly Artisan",
+      "description": "A low-level programming master who understands the machine at its core.",
+      "level": "Legendary",
+      "color": "#6E4C13",
+      "technologies": ["Assembly", "x86", "ARM", "MASM", "NASM"],
+      "conditions": {
+        "primary_languages": ["Assembly"],
+        "min_hours": 10,
+        "min_streak": 2
+      }
+    },
+    {
+      "name": "The Polyglot",
+      "description": "A versatile developer who speaks many programming languages fluently.",
+      "level": "Expert",
+      "color": "#FF6B6B",
+      "technologies": ["Multiple Languages", "Cross-platform", "Microservices", "DevOps"],
+      "conditions": {
+        "language_count": 5,
+        "min_hours": 50,
+        "min_streak": 7
+      }
+    },
+    {
+      "name": "The Code Explorer",
+      "description": "An enthusiastic learner discovering the vast world of programming.",
+      "level": "Learning",
+      "color": "#9C27B0",
+      "technologies": ["HTML", "CSS", "JavaScript", "Git", "VS Code"],
+      "conditions": {
+        "min_hours": 0,
+        "max_hours": 20
+      }
+    }
+  ]
+}

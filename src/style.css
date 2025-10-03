@@ -1,0 +1,175 @@
+@import "tailwindcss";
+
+/* CSS Variables for Theme System */
+:root {
+  /* Dark theme (default) */
+  --bg-primary: #2a1f21;
+  --bg-secondary: #3d2b2e;
+  --bg-tertiary: #4a2d31;
+  --bg-card: #3d2b2e;
+  --bg-card-secondary: #4a2d31;
+  --bg-card-tertiary: #1f1617;
+  --bg-sidebar: #2a1f21;
+  --text-primary: #f5e6e8;
+  --text-secondary: #f5e6e8;
+  --text-muted: #a0a0a0;
+  --accent-primary: #ff7a8a;
+  --accent-secondary: #c8394f;
+  --accent-danger: #ec3750;
+  --accent-warning: #f1c40f;
+  --accent-info: #33d6a6;
+  --border-primary: #3d2b2e;
+  --border-secondary: #4a2d31;
+}
+
+.light {
+  /* Light theme */
+  --bg-primary: #fdf7f8;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f8e8ea;
+  --bg-card: #ffffff;
+  --bg-card-secondary: #f8e8ea;
+  --bg-card-tertiary: #ffffff;
+  --bg-sidebar: #fdf7f8;
+  --text-primary: #5d3a3f;
+  --text-secondary: #5d3a3f;
+  --text-muted: #8b2635;
+  --accent-primary: #c8394f;
+  --accent-secondary: #a12d3e;
+  --accent-danger: #ec3750;
+  --accent-warning: #ff8c37;
+  --accent-info: #33d6a6;
+  --border-primary: #f8e8ea;
+  --border-secondary: #ffffff;
+}
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-sidebar);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-primary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-secondary);
+}
+
+/* Selection styling */
+::selection {
+  background: rgba(200, 57, 79, 0.3);
+  color: var(--text-primary);
+}
+
+/* Focus styles */
+*:focus {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* Global styles */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: "Outfit", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  overflow: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#app {
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Button and input reset */
+button, input, textarea, select {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* Link styles */
+a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--accent-secondary);
+}
+
+/* Smooth transitions for theme changes */
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* Outfit font class as per Google Fonts documentation */
+.outfit {
+  font-family: "Outfit", sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
+}
+
+/* Outfit font weight utilities */
+.outfit-light {
+  font-family: "Outfit", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 300;
+  font-style: normal;
+}
+
+.outfit-normal {
+  font-family: "Outfit", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.outfit-medium {
+  font-family: "Outfit", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 500;
+  font-style: normal;
+}
+
+.outfit-semibold {
+  font-family: "Outfit", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 600;
+  font-style: normal;
+}
+
+.outfit-bold {
+  font-family: "Outfit", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 700;
+  font-style: normal;
+}

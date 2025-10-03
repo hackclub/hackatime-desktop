@@ -1,0 +1,51 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Hackatime Desktop",
+  "version": "0.1.0",
+  "identifier": "com.hackclub.hackatime",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Hackatime Desktop",
+        "width": 800,
+        "height": 600,
+        "visible": true,
+        "skipTaskbar": false,
+        "decorations": true,
+        "alwaysOnTop": false,
+        "resizable": true,
+        "minimizable": true,
+        "maximizable": true,
+        "closable": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  },
+  "plugins": {
+    "shell": {
+      "open": true
+    },
+    "deepLink": {
+      "schemes": ["kubetime"]
+    }
+  }
+}
