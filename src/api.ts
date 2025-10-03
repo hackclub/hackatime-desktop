@@ -11,7 +11,7 @@ interface AuthState {
 }
 
 export class KubeTimeApi {
-  private baseUrl: string = "http://localhost:3000";
+  private baseUrl: string = "http://dogwood.local:3000";
   private accessToken: string | null = null;
   private latestPresenceCache: { data: any | null; fetchedAt: number } = { data: null, fetchedAt: 0 };
 

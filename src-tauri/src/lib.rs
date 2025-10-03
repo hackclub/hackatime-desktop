@@ -36,60 +36,16 @@ struct ApiConfig {
 impl Default for ApiConfig {
     fn default() -> Self {
         Self {
-            base_url: "http://localhost:3000".to_string(),
+            base_url: "http://dogwood.local:3000".to_string(),
         }
     }
 }
 
 impl ApiConfig {
-    fn from_config_file() -> Result<Self, Box<dyn std::error::Error>> {
-        let possible_paths = vec![
-            Path::new("config.json"), 
-            Path::new("../config.json"), 
-            Path::new("../../config.json"), 
-        ];
-        
-        let mut config_path = None;
-        for path in &possible_paths {
-            println!("Checking for config file at: {:?}", path);
-            if path.exists() {
-                config_path = Some(path);
-                break;
-            }
+    fn new() -> Self {
+        Self {
+            base_url: "http://dogwood.local:3000".to_string(),
         }
-        
-        let config_path = match config_path {
-            Some(path) => path,
-            None => {
-                println!("Config file not found in any expected location");
-                let default_config = ApiConfig::default();
-                println!("Using default config: {:?}", default_config);
-                return Ok(default_config);
-            }
-        };
-        
-        println!("Found config file at: {:?}", config_path);
-        
-        println!("Config file exists, reading content...");
-        let config_content = fs::read_to_string(config_path)?;
-        println!("Config file content: {}", config_content);
-        let config: serde_json::Value = serde_json::from_str(&config_content)?;
-        
-        if let Some(api_config) = config.get("api") {
-            if let Some(base_url) = api_config.get("base_url") {
-                if let Some(url) = base_url.as_str() {
-                    println!("Found API base_url in config: {}", url);
-                    return Ok(ApiConfig {
-                        base_url: url.to_string(),
-                    });
-                }
-            }
-        }
-        println!("Could not find api.base_url in config file");
-        
-        let default_config = ApiConfig::default();
-        println!("Using default config: {:?}", default_config);
-        Ok(default_config)
     }
 }
 
@@ -2093,7 +2049,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_deep_link::init())
-        .manage(ApiConfig::from_config_file().unwrap_or_else(|_| ApiConfig::default()))
+        .manage(ApiConfig::new())
         .manage(Arc::new(tauri::async_runtime::Mutex::new(AuthState {
             is_authenticated: false,
             access_token: None,

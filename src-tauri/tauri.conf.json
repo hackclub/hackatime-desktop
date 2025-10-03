@@ -40,9 +40,6 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": [
-      "../config.json"
-    ],
     "macOS": {
       "entitlements": "entitlements.plist",
       "hardenedRuntime": true,
@@ -54,16 +51,9 @@
       "open": true
     },
     "deepLink": {
-      "schemes": [
-        "hackatime"
-      ],
-      "windows": [
-        {
-          "title": "Hackatime Desktop",
-          "width": 800,
-          "height": 600
-        }
-      ]
+      "desktop": {
+        "schemes": ["hackatime"]
+      }
     },
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdERjg4QTFCNTJFMDk0MUQKUldRZGxPQlNHNHI0ZlRkMDN0MGI1MnllY1dUVStZalV3dVdhcTFuREx5SGtBc0txQ2xnTWs3WU4K",
