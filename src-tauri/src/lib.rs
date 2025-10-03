@@ -36,7 +36,7 @@ struct ApiConfig {
 impl Default for ApiConfig {
     fn default() -> Self {
         Self {
-            base_url: "http://dogwood.local:3000".to_string(),
+            base_url: "https://hackatime.hackclub.com".to_string(),
         }
     }
 }
@@ -44,7 +44,7 @@ impl Default for ApiConfig {
 impl ApiConfig {
     fn new() -> Self {
         Self {
-            base_url: "http://dogwood.local:3000".to_string(),
+            base_url: "https://hackatime.hackclub.com".to_string(),
         }
     }
 }

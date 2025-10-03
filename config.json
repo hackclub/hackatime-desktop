@@ -1,6 +1,6 @@
 {
   "api": {
-    "base_url": "http://dogwood.local:3000"
+    "base_url": "https://hackatime.hackclub.com/"
   },
   "frontend": {
     "dev_url": "http://localhost:1420"

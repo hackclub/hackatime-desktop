@@ -581,7 +581,7 @@ function getPageTitle(): string {
             id="api-url"
             v-model="apiConfig.base_url" 
             type="url" 
-            placeholder="http://dogwood.local:3000"
+            placeholder="https://hackatime.hackclub.com"
             class="w-full p-3 bg-bg-secondary border border-border-secondary rounded-xl text-text-primary text-base box-border focus:outline-none focus:border-accent-primary focus:shadow-[0_0_0_2px_rgba(200,57,79,0.2)]"
           />
         </div>
