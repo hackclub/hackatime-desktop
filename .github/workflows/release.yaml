@@ -4,9 +4,6 @@ name: Release
   push:
     branches:
       - main
-    paths:
-      - apps/**
-      - packages/**
 concurrency:
   group: '${{ github.workflow }}'
   cancel-in-progress: false
