@@ -1,0 +1,8 @@
+{
+  "api": {
+    "base_url": "http://dogwood.local:3000"
+  },
+  "frontend": {
+    "dev_url": "http://localhost:1420"
+  }
+}

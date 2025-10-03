@@ -817,12 +817,15 @@ dependencies = [
 name = "desktop"
 version = "0.1.0"
 dependencies = [
+ "base64 0.21.7",
  "chrono",
  "discord-rich-presence",
  "open",
+ "rand 0.8.5",
  "reqwest 0.11.27",
  "serde",
  "serde_json",
+ "sha2",
  "sqlx",
  "tauri",
  "tauri-build",

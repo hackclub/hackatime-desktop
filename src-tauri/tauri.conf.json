@@ -52,7 +52,14 @@
     },
     "deepLink": {
       "schemes": [
-        "kubetime"
+        "hackatime"
+      ],
+      "windows": [
+        {
+          "title": "Hackatime Desktop",
+          "width": 800,
+          "height": 600
+        }
       ]
     },
     "updater": {

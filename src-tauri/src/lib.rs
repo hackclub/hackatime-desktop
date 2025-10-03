@@ -8,6 +8,10 @@ use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{Manager, State, WindowEvent};
 use tauri_plugin_deep_link::DeepLinkExt;
+use sha2::{Sha256, Digest};
+use base64::{Engine as _, engine::general_purpose};
+use rand::{Rng, thread_rng};
+use rand::distributions::Alphanumeric;
 
 mod database;
 mod discord_rpc;
@@ -37,7 +41,109 @@ impl Default for ApiConfig {
     }
 }
 
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+impl ApiConfig {
+    fn from_config_file() -> Result<Self, Box<dyn std::error::Error>> {
+        let possible_paths = vec![
+            Path::new("config.json"), 
+            Path::new("../config.json"), 
+            Path::new("../../config.json"), 
+        ];
+        
+        let mut config_path = None;
+        for path in &possible_paths {
+            println!("Checking for config file at: {:?}", path);
+            if path.exists() {
+                config_path = Some(path);
+                break;
+            }
+        }
+        
+        let config_path = match config_path {
+            Some(path) => path,
+            None => {
+                println!("Config file not found in any expected location");
+                let default_config = ApiConfig::default();
+                println!("Using default config: {:?}", default_config);
+                return Ok(default_config);
+            }
+        };
+        
+        println!("Found config file at: {:?}", config_path);
+        
+        println!("Config file exists, reading content...");
+        let config_content = fs::read_to_string(config_path)?;
+        println!("Config file content: {}", config_content);
+        let config: serde_json::Value = serde_json::from_str(&config_content)?;
+        
+        if let Some(api_config) = config.get("api") {
+            if let Some(base_url) = api_config.get("base_url") {
+                if let Some(url) = base_url.as_str() {
+                    println!("Found API base_url in config: {}", url);
+                    return Ok(ApiConfig {
+                        base_url: url.to_string(),
+                    });
+                }
+            }
+        }
+        println!("Could not find api.base_url in config file");
+        
+        let default_config = ApiConfig::default();
+        println!("Using default config: {:?}", default_config);
+        Ok(default_config)
+    }
+}
+
+fn generate_code_verifier() -> String {
+    let mut rng = thread_rng();
+    let bytes: Vec<u8> = (0..32).map(|_| rng.gen()).collect();
+    general_purpose::URL_SAFE_NO_PAD.encode(&bytes)
+}
+
+fn generate_code_challenge(verifier: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(verifier.as_bytes());
+    let hash = hasher.finalize();
+    general_purpose::URL_SAFE_NO_PAD.encode(&hash)
+}
+
+fn generate_state() -> String {
+    let mut rng = thread_rng();
+    (0..32)
+        .map(|_| rng.sample(Alphanumeric))
+        .map(char::from)
+        .collect()
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct PkceState {
+    code_verifier: String,
+    state: String,
+    timestamp: i64,
+}
+
+impl PkceState {
+    fn new() -> Self {
+        let code_verifier = generate_code_verifier();
+        let state = generate_state();
+        Self {
+            code_verifier,
+            state,
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs() as i64,
+        }
+    }
+    
+    fn is_expired(&self, max_age_seconds: i64) -> bool {
+        let current_time = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
+        current_time - self.timestamp > max_age_seconds
+    }
+}
+
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
@@ -69,26 +175,36 @@ async fn get_auth_state(
 #[tauri::command]
 async fn authenticate_with_rails(
     api_config: ApiConfig,
-    _state: State<'_, Arc<tauri::async_runtime::Mutex<AuthState>>>,
+    pkce_state: State<'_, Arc<tauri::async_runtime::Mutex<Option<PkceState>>>>,
     _app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
-    // Create the authentication URL with deep link callback
-    let callback_url = "kubetime://auth/callback";
+
+    let callback_url = "hackatime://auth/callback";
+    
+    let pkce = PkceState::new();
+    let code_challenge = generate_code_challenge(&pkce.code_verifier);
+    
+    {
+        let mut stored_pkce = pkce_state.lock().await;
+        *stored_pkce = Some(pkce.clone());
+    }
+    
+    println!("Generated PKCE parameters - verifier: {}, challenge: {}, state: {}", 
+             pkce.code_verifier, code_challenge, pkce.state);
+    
     let auth_url = format!(
-        "{}/auth/desktop?callback={}",
+        "{}/oauth/authorize?client_id=BPr5VekIV-xuQ2ZhmxbGaahJ3XVd7gM83pql-HYGYxQ&redirect_uri={}&response_type=code&scope=profile&state={}&code_challenge={}&code_challenge_method=S256",
         api_config.base_url,
-        urlencoding::encode(callback_url)
+        urlencoding::encode(callback_url),
+        urlencoding::encode(&pkce.state),
+        urlencoding::encode(&code_challenge)
     );
 
-    // Open the authentication URL in the default browser
     if let Err(e) = open::that(&auth_url) {
         return Err(format!("Failed to open authentication URL: {}", e));
     }
 
-    // Show a message to the user about the authentication process
-    // In a real implementation, you would handle the OAuth callback
-    // For now, we'll just open the browser and let the user complete auth there
-
+    println!("OAuth authentication URL opened in browser. Waiting for callback...");
     Ok(())
 }
 
@@ -100,7 +216,6 @@ async fn handle_auth_callback(
     let mut auth_state = state.lock().await;
     auth_state.is_authenticated = true;
     auth_state.access_token = Some(token);
-    // You would typically fetch user info here
     auth_state.user_info = Some(HashMap::new());
 
     Ok(())
@@ -115,7 +230,6 @@ async fn logout(
     auth_state.access_token = None;
     auth_state.user_info = None;
 
-    // Clear saved auth state
     if let Err(e) = clear_auth_state().await {
         eprintln!("Failed to clear auth state: {}", e);
     }
@@ -154,7 +268,7 @@ async fn get_api_key(
 
     let client = reqwest::Client::new();
     let response = client
-        .get(&format!("{}/api/v1/desktop/api_key", api_config.base_url))
+        .get(&format!("{}/api/v1/authenticated/api_key", api_config.base_url))
         .bearer_auth(access_token)
         .send()
         .await
@@ -188,179 +302,216 @@ async fn authenticate_with_direct_oauth(
 ) -> Result<(), String> {
     let client = reqwest::Client::new();
 
-    // Check if this is a deep link URL and extract the temp_token
-    let token_to_use = if oauth_token.starts_with("kubetime://auth/callback") {
-        // Extract temp_token from deep link URL
+    if oauth_token.starts_with("hackatime://auth/callback") {
         if let Some(query_start) = oauth_token.find('?') {
             let query = &oauth_token[query_start + 1..];
             let params: Vec<&str> = query.split('&').collect();
 
-            let mut found_token = None;
+            let mut found_code = None;
+            let mut found_state = None;
+            let mut found_error = None;
+            
             for param in params {
-                if param.starts_with("temp_token=") {
-                    let temp_token = param[11..].to_string(); // Remove "temp_token=" prefix
-                    println!("Extracted temp_token from deep link: {}", temp_token);
-                    found_token = Some(temp_token);
-                    break;
+                if param.starts_with("code=") {
+                    found_code = Some(param[5..].to_string()); 
+                } else if param.starts_with("state=") {
+                    found_state = Some(param[6..].to_string()); 
+                } else if param.starts_with("error=") {
+                    found_error = Some(param[6..].to_string());
                 }
             }
 
-            match found_token {
-                Some(token) => token,
-                None => return Err("No temp_token found in deep link URL".to_string()),
+            if let Some(error) = found_error {
+                return Err(format!("OAuth error: {}", error));
+            }
+
+            if let Some(code) = found_code {
+                println!("Extracted authorization code from deep link: {}", code);
+                
+                return exchange_authorization_code(code, found_state, api_config, state, client).await;
+            } else {
+                return Err("No authorization code found in deep link URL".to_string());
             }
         } else {
             return Err("Invalid deep link URL format".to_string());
         }
     } else {
-        oauth_token
+        return validate_access_token(oauth_token, api_config, state, client).await;
+    }
+}
+
+async fn exchange_authorization_code(
+    code: String,
+    _state: Option<String>,
+    api_config: ApiConfig,
+    auth_state: State<'_, Arc<tauri::async_runtime::Mutex<AuthState>>>,
+    client: reqwest::Client,
+) -> Result<(), String> {
+    println!("Exchanging authorization code for access token");
+    
+    let response = client
+        .post(&format!(
+            "{}/oauth/token",
+            api_config.base_url
+        ))
+        .form(&[
+            ("grant_type", "authorization_code"),
+            ("code", &code),
+            ("client_id", "BPr5VekIV-xuQ2ZhmxbGaahJ3XVd7gM83pql-HYGYxQ"),
+            ("redirect_uri", "hackatime://auth/callback"),
+        ])
+        .send()
+        .await
+        .map_err(|e| format!("Failed to exchange authorization code: {}", e))?;
+
+    println!("Token exchange response status: {}", response.status());
+
+    if !response.status().is_success() {
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown error".to_string());
+        println!("Token exchange failed with error: {}", error_text);
+        return Err(format!("Token exchange failed: {}", error_text));
+    }
+
+    let token_response: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse token response: {}", e))?;
+
+    let access_token = token_response["access_token"]
+        .as_str()
+        .ok_or("No access token in response")?;
+
+    let user_response = client
+        .get(&format!("{}/api/v1/authenticated/me", api_config.base_url))
+        .bearer_auth(access_token)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to fetch user info: {}", e))?;
+
+    let user_info = if user_response.status().is_success() {
+        user_response.json::<serde_json::Value>()
+            .await
+            .unwrap_or_else(|_| serde_json::json!({}))
+    } else {
+        serde_json::json!({})
     };
 
-    // Determine if this is a temporary token or a full OAuth token
-    // Temporary tokens are typically 64 characters (32 bytes in hex)
-    // OAuth tokens are usually longer and have a different format
-
-    let is_temp_token =
-        token_to_use.len() == 64 && token_to_use.chars().all(|c| c.is_ascii_hexdigit());
-
-    if is_temp_token {
-        // This is a temporary token, exchange it for a proper OAuth token
-        println!("Attempting to exchange temporary token: {}", token_to_use);
-        let exchange_url = format!("{}/api/v1/desktop/exchange_token", api_config.base_url);
-        println!("Exchange URL: {}", exchange_url);
-
-        let response = client
-            .post(&exchange_url)
-            .json(&serde_json::json!({
-                "temp_token": token_to_use
-            }))
-            .send()
-            .await
-            .map_err(|e| format!("Failed to exchange temporary token: {}", e))?;
-
-        println!("Exchange response status: {}", response.status());
-
-        if !response.status().is_success() {
-            let error_text = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            println!("Exchange failed with error: {}", error_text);
-            return Err(format!("Token exchange failed: {}", error_text));
-        }
-
-        let token_response: serde_json::Value = response
-            .json()
-            .await
-            .map_err(|e| format!("Failed to parse token response: {}", e))?;
-
-        let access_token = token_response["access_token"]
-            .as_str()
-            .ok_or("No access token in response")?;
-
-        let user_info = token_response["user"]
-            .as_object()
-            .ok_or("No user info in response")?;
-
-        // Convert serde_json::Map to HashMap
-        let mut user_info_map = HashMap::new();
-        for (key, value) in user_info {
+    let mut user_info_map = HashMap::new();
+    if let Some(obj) = user_info.as_object() {
+        for (key, value) in obj {
             user_info_map.insert(key.clone(), value.clone());
         }
-
-        // Update authentication state
-        let mut auth_state = state.lock().await;
-        auth_state.is_authenticated = true;
-        auth_state.access_token = Some(access_token.to_string());
-        auth_state.user_info = Some(user_info_map);
-
-        // Save auth state to disk
-        let auth_state_to_save = auth_state.clone();
-        drop(auth_state); // Release the lock before the async call
-        if let Err(e) = save_auth_state(auth_state_to_save).await {
-            eprintln!("Failed to save auth state: {}", e);
-        }
-
-        Ok(())
-    } else {
-        // This is a full OAuth token, validate it directly
-        let response = client
-            .post(&format!(
-                "{}/api/v1/desktop/validate_oauth_token",
-                api_config.base_url
-            ))
-            .json(&serde_json::json!({
-                "oauth_token": token_to_use
-            }))
-            .send()
-            .await
-            .map_err(|e| format!("Failed to validate OAuth token: {}", e))?;
-
-        if !response.status().is_success() {
-            let error_text = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(format!("OAuth token validation failed: {}", error_text));
-        }
-
-        let auth_response: serde_json::Value = response
-            .json()
-            .await
-            .map_err(|e| format!("Failed to parse auth response: {}", e))?;
-
-        let user_info = auth_response["user"]
-            .as_object()
-            .ok_or("No user info in response")?;
-
-        // Convert serde_json::Map to HashMap
-        let mut user_info_map = HashMap::new();
-        for (key, value) in user_info {
-            user_info_map.insert(key.clone(), value.clone());
-        }
-
-        // Get the access token and API keys
-        let access_token = auth_response["access_token"]
-            .as_str()
-            .ok_or("No access token in response")?;
-
-        let _api_key = auth_response["api_key"]
-            .as_str()
-            .ok_or("No API key in response")?;
-
-        // Update authentication state
-        let mut auth_state = state.lock().await;
-        auth_state.is_authenticated = true;
-        auth_state.access_token = Some(access_token.to_string());
-        auth_state.user_info = Some(user_info_map);
-
-        // Save auth state to disk
-        let auth_state_to_save = auth_state.clone();
-        drop(auth_state); // Release the lock before the async call
-        if let Err(e) = save_auth_state(auth_state_to_save).await {
-            eprintln!("Failed to save auth state: {}", e);
-        }
-
-        Ok(())
     }
+
+    let mut auth_state = auth_state.lock().await;
+    auth_state.is_authenticated = true;
+    auth_state.access_token = Some(access_token.to_string());
+    auth_state.user_info = Some(user_info_map);
+
+    let auth_state_to_save = auth_state.clone();
+    drop(auth_state); 
+    if let Err(e) = save_auth_state(auth_state_to_save).await {
+        eprintln!("Failed to save auth state: {}", e);
+    }
+
+    println!("Direct OAuth authentication completed successfully!");
+    Ok(())
+}
+
+async fn validate_access_token(
+    access_token: String,
+    api_config: ApiConfig,
+    auth_state: State<'_, Arc<tauri::async_runtime::Mutex<AuthState>>>,
+    client: reqwest::Client,
+) -> Result<(), String> {
+    println!("Validating access token directly");
+    
+    let response = client
+        .get(&format!("{}/api/v1/authenticated/me", api_config.base_url))
+        .bearer_auth(&access_token)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to validate access token: {}", e))?;
+
+    if !response.status().is_success() {
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown error".to_string());
+        return Err(format!("Access token validation failed: {}", error_text));
+    }
+
+    let user_info = response
+        .json::<serde_json::Value>()
+        .await
+        .map_err(|e| format!("Failed to parse user info response: {}", e))?;
+
+    let mut user_info_map = HashMap::new();
+    if let Some(obj) = user_info.as_object() {
+        for (key, value) in obj {
+            user_info_map.insert(key.clone(), value.clone());
+        }
+    }
+
+    let mut auth_state = auth_state.lock().await;
+    auth_state.is_authenticated = true;
+    auth_state.access_token = Some(access_token);
+    auth_state.user_info = Some(user_info_map);
+
+    let auth_state_to_save = auth_state.clone();
+    drop(auth_state); 
+    if let Err(e) = save_auth_state(auth_state_to_save).await {
+        eprintln!("Failed to save auth state: {}", e);
+    }
+
+    println!("Access token validation completed successfully!");
+    Ok(())
 }
 
 #[tauri::command]
 async fn handle_deep_link_callback(
-    temp_token: String,
+    authorization_code: String,
+    state: String,
     api_config: ApiConfig,
     auth_state: State<'_, Arc<tauri::async_runtime::Mutex<AuthState>>>,
+    pkce_state: State<'_, Arc<tauri::async_runtime::Mutex<Option<PkceState>>>>,
 ) -> Result<(), String> {
-    // Exchange temporary token for proper access token
+    let stored_pkce = {
+        let pkce_guard = pkce_state.lock().await;
+        pkce_guard.clone()
+    };
+
+    let pkce = match stored_pkce {
+        Some(pkce) => {
+            if pkce.is_expired(600) {
+                return Err("PKCE state expired. Please restart authentication.".to_string());
+            }
+            
+            if pkce.state != state {
+                return Err("State parameter mismatch. Possible CSRF attack.".to_string());
+            }
+            
+            pkce
+        }
+        None => return Err("No PKCE state found. Please restart authentication.".to_string()),
+    };
+
     let client = reqwest::Client::new();
     let response = client
         .post(&format!(
-            "{}/api/v1/desktop/exchange_token",
+            "{}/oauth/token",
             api_config.base_url
         ))
-        .json(&serde_json::json!({
-            "temp_token": temp_token
-        }))
+        .form(&[
+            ("grant_type", "authorization_code"),
+            ("code", &authorization_code),
+            ("client_id", "BPr5VekIV-xuQ2ZhmxbGaahJ3XVd7gM83pql-HYGYxQ"),
+            ("redirect_uri", "hackatime://auth/callback"),
+            ("code_verifier", &pkce.code_verifier),
+        ])
         .send()
         .await
         .map_err(|e| format!("Failed to exchange token: {}", e))?;
@@ -382,29 +533,45 @@ async fn handle_deep_link_callback(
         .as_str()
         .ok_or("No access token in response")?;
 
-    let user_info = token_response["user"]
-        .as_object()
-        .ok_or("No user info in response")?;
+    let user_response = client
+        .get(&format!("{}/api/v1/authenticated/me", api_config.base_url))
+        .bearer_auth(access_token)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to fetch user info: {}", e))?;
 
-    // Convert serde_json::Map to HashMap
+    let user_info = if user_response.status().is_success() {
+        user_response.json::<serde_json::Value>()
+            .await
+            .unwrap_or_else(|_| serde_json::json!({}))
+    } else {
+        serde_json::json!({})
+    };
+
     let mut user_info_map = HashMap::new();
-    for (key, value) in user_info {
-        user_info_map.insert(key.clone(), value.clone());
+    if let Some(obj) = user_info.as_object() {
+        for (key, value) in obj {
+            user_info_map.insert(key.clone(), value.clone());
+        }
     }
 
-    // Update authentication state
     let mut auth_state = auth_state.lock().await;
     auth_state.is_authenticated = true;
     auth_state.access_token = Some(access_token.to_string());
     auth_state.user_info = Some(user_info_map);
 
-    // Save auth state to disk
     let auth_state_to_save = auth_state.clone();
-    drop(auth_state); // Release the lock before the async call
+    drop(auth_state); 
     if let Err(e) = save_auth_state(auth_state_to_save).await {
         eprintln!("Failed to save auth state: {}", e);
     }
 
+    {
+        let mut stored_pkce = pkce_state.lock().await;
+        *stored_pkce = None;
+    }
+
+    println!("OAuth authentication completed successfully!");
     Ok(())
 }
 
@@ -415,14 +582,12 @@ async fn setup_hackatime_macos_linux(api_key: String, api_url: String) -> Result
     let config_path = format!("{}/.wakatime.cfg", home_dir);
     let backup_path = format!("{}/.wakatime.cfg.bak", home_dir);
 
-    // Backup existing config if it exists
     if Path::new(&config_path).exists() {
         if let Err(e) = fs::rename(&config_path, &backup_path) {
             return Err(format!("Failed to backup existing config: {}", e));
         }
     }
 
-    // Create new config file
     let config_content = format!(
         "[settings]\napi_url = {}\napi_key = {}\nheartbeat_rate_limit_seconds = 30\n",
         api_url, api_key
@@ -432,12 +597,10 @@ async fn setup_hackatime_macos_linux(api_key: String, api_url: String) -> Result
         return Err(format!("Failed to write config file: {}", e));
     }
 
-    // Verify config was created
     if !Path::new(&config_path).exists() {
         return Err("Config file was not created".to_string());
     }
 
-    // Read and verify config
     let config_content = fs::read_to_string(&config_path)
         .map_err(|e| format!("Failed to read config file: {}", e))?;
 
@@ -474,14 +637,12 @@ async fn setup_hackatime_windows(api_key: String, api_url: String) -> Result<Str
     let config_path = format!("{}\\.wakatime.cfg", userprofile);
     let backup_path = format!("{}\\.wakatime.cfg.bak", userprofile);
 
-    // Backup existing config if it exists
     if Path::new(&config_path).exists() {
         if let Err(e) = fs::rename(&config_path, &backup_path) {
             return Err(format!("Failed to backup existing config: {}", e));
         }
     }
 
-    // Create new config file
     let config_content = format!(
         "[settings]\r\napi_url = {}\r\napi_key = {}\r\nheartbeat_rate_limit_seconds = 30\r\n",
         api_url, api_key
@@ -491,12 +652,10 @@ async fn setup_hackatime_windows(api_key: String, api_url: String) -> Result<Str
         return Err(format!("Failed to write config file: {}", e));
     }
 
-    // Verify config was created
     if !Path::new(&config_path).exists() {
         return Err("Config file was not created".to_string());
     }
 
-    // Read and verify config
     let config_content = fs::read_to_string(&config_path)
         .map_err(|e| format!("Failed to read config file: {}", e))?;
 
@@ -1934,12 +2093,13 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_deep_link::init())
-        .manage(ApiConfig::default())
+        .manage(ApiConfig::from_config_file().unwrap_or_else(|_| ApiConfig::default()))
         .manage(Arc::new(tauri::async_runtime::Mutex::new(AuthState {
             is_authenticated: false,
             access_token: None,
             user_info: None,
         })))
+        .manage(Arc::new(tauri::async_runtime::Mutex::new(Option::<PkceState>::None)))
         .manage(Arc::new(tauri::async_runtime::Mutex::new(DiscordRpcService::new())))
         .manage(Arc::new(tauri::async_runtime::Mutex::new(SessionState {
             is_active: false,
@@ -2158,66 +2318,126 @@ pub fn run() {
                 
                 for url in urls {
                     let url_string = url.to_string();
-                    if url_string.starts_with("kubetime://auth/callback") {
-                        // Parse the URL to extract the temp_token
+                    if url_string.starts_with("hackatime://auth/callback") {
                         if let Some(query_start) = url_string.find('?') {
                             let query = &url_string[query_start + 1..];
                             let params: Vec<&str> = query.split('&').collect();
                             
+                            let mut code = None;
+                            let mut state = None;
+                            let mut error = None;
+                            
                             for param in params {
-                                if param.starts_with("temp_token=") {
-                                    let temp_token = param[11..].to_string(); // Clone the string
-                                    println!("Extracted temp_token: {}", temp_token);
+                                if param.starts_with("code=") {
+                                    code = Some(param[5..].to_string());
+                                } else if param.starts_with("state=") {
+                                    state = Some(param[6..].to_string());
+                                } else if param.starts_with("error=") {
+                                    error = Some(param[6..].to_string());
+                                }
+                            }
+                            
+                            if let Some(error) = error {
+                                println!("OAuth error: {}", error);
+                                continue;
+                            }
+                            
+                            if let Some(code) = code {
+                                if let Some(state) = state {
+                                    println!("Extracted authorization code: {} and state: {}", code, state);
                                     
-                                    // Handle the authentication callback
                                     let api_config = app_handle.state::<ApiConfig>();
                                     let auth_state = app_handle.state::<Arc<tauri::async_runtime::Mutex<AuthState>>>();
+                                    let pkce_state = app_handle.state::<Arc<tauri::async_runtime::Mutex<Option<PkceState>>>>();
                                     
-                                    // Clone the values we need for the async task
-                                    let temp_token_clone = temp_token.clone();
+                                    let code_clone = code.clone();
+                                    let state_clone = state.clone();
                                     let api_config_clone = api_config.inner().clone();
                                     let auth_state_clone = auth_state.inner().clone();
+                                    let pkce_state_clone = pkce_state.inner().clone();
                                     
-                                    // Spawn async task to handle token exchange
                                     tauri::async_runtime::spawn(async move {
-                                        // Create a new client for the token exchange
                                         let client = reqwest::Client::new();
+                                        
+                                        let stored_pkce = {
+                                            let pkce_guard = pkce_state_clone.lock().await;
+                                            pkce_guard.clone()
+                                        };
+
+                                        let pkce = match stored_pkce {
+                                            Some(pkce) => {
+                                                if pkce.is_expired(600) {
+                                                    eprintln!("PKCE state expired. Please restart authentication.");
+                                                    return;
+                                                }
+                                                
+                                                if pkce.state != state_clone {
+                                                    eprintln!("State parameter mismatch. Possible CSRF attack.");
+                                                    return;
+                                                }
+                                                
+                                                pkce
+                                            }
+                                            None => {
+                                                eprintln!("No PKCE state found. Please restart authentication.");
+                                                return;
+                                            }
+                                        };
+
                                         let response = client
-                                            .post(&format!("{}/api/v1/desktop/exchange_token", api_config_clone.base_url))
-                                            .json(&serde_json::json!({
-                                                "temp_token": temp_token_clone
-                                            }))
+                                            .post(&format!("{}/oauth/token", api_config_clone.base_url))
+                                            .form(&[
+                                                ("grant_type", "authorization_code"),
+                                                ("code", &code_clone),
+                                                ("client_id", "BPr5VekIV-xuQ2ZhmxbGaahJ3XVd7gM83pql-HYGYxQ"),
+                                                ("redirect_uri", "hackatime://auth/callback"),
+                                                ("code_verifier", &pkce.code_verifier),
+                                            ])
                                             .send()
                                             .await;
-                                        
+
                                         match response {
                                             Ok(resp) => {
                                                 if resp.status().is_success() {
                                                     if let Ok(token_response) = resp.json::<serde_json::Value>().await {
                                                         if let Some(access_token) = token_response["access_token"].as_str() {
-                                                            if let Some(user_info) = token_response["user"].as_object() {
-                                                                // Convert to HashMap
-                                                                let mut user_info_map = HashMap::new();
-                                                                for (key, value) in user_info {
+                                                            let user_response = client
+                                                                .get(&format!("{}/api/v1/authenticated/me", api_config_clone.base_url))
+                                                                .bearer_auth(access_token)
+                                                                .send()
+                                                                .await;
+
+                                                            let user_info = match user_response {
+                                                                Ok(resp) if resp.status().is_success() => {
+                                                                    resp.json::<serde_json::Value>().await.unwrap_or_else(|_| serde_json::json!({}))
+                                                                }
+                                                                _ => serde_json::json!({})
+                                                            };
+
+                                                            let mut user_info_map = HashMap::new();
+                                                            if let Some(obj) = user_info.as_object() {
+                                                                for (key, value) in obj {
                                                                     user_info_map.insert(key.clone(), value.clone());
                                                                 }
-                                                                
-                                                                
-                                                                // Update auth state
-                                                                let mut auth_state = auth_state_clone.lock().await;
-                                                                auth_state.is_authenticated = true;
-                                                                auth_state.access_token = Some(access_token.to_string());
-                                                                auth_state.user_info = Some(user_info_map);
-                                                                
-                                                                // Save auth state to disk
-                                                                let auth_state_to_save = auth_state.clone();
-                                                                drop(auth_state); // Release the lock before the async call
-                                                                if let Err(e) = save_auth_state(auth_state_to_save).await {
-                                                                    eprintln!("Failed to save auth state: {}", e);
-                                                                }
-                                                                
-                                                                println!("Authentication successful!");
                                                             }
+
+                                                            let mut auth_state = auth_state_clone.lock().await;
+                                                            auth_state.is_authenticated = true;
+                                                            auth_state.access_token = Some(access_token.to_string());
+                                                            auth_state.user_info = Some(user_info_map);
+
+                                                            let auth_state_to_save = auth_state.clone();
+                                                            drop(auth_state); // Release the lock before the async call
+                                                            if let Err(e) = save_auth_state(auth_state_to_save).await {
+                                                                eprintln!("Failed to save auth state: {}", e);
+                                                            }
+
+                                                            {
+                                                                let mut stored_pkce = pkce_state_clone.lock().await;
+                                                                *stored_pkce = None;
+                                                            }
+
+                                                            println!("OAuth authentication successful!");
                                                         }
                                                     }
                                                 } else {
@@ -2229,6 +2449,8 @@ pub fn run() {
                                             }
                                         }
                                     });
+                                } else {
+                                    println!("No state parameter found in OAuth callback");
                                 }
                             }
                         }
@@ -2236,70 +2458,130 @@ pub fn run() {
                 }
             });
 
-            // Check if app was started via deep link
             if let Some(start_urls) = app.deep_link().get_current().unwrap_or_default() {
                 println!("App started with deep link: {:?}", start_urls);
-                // Handle the same logic as above for startup deep links
                 for url in start_urls {
                     let url_string = url.to_string();
-                    if url_string.starts_with("kubetime://auth/callback") {
-                        // Parse and handle the callback
+                    if url_string.starts_with("hackatime://auth/callback") {
                         if let Some(query_start) = url_string.find('?') {
                             let query = &url_string[query_start + 1..];
                             let params: Vec<&str> = query.split('&').collect();
                             
+                            let mut code = None;
+                            let mut state = None;
+                            let mut error = None;
+                            
                             for param in params {
-                                if param.starts_with("temp_token=") {
-                                    let temp_token = param[11..].to_string(); // Clone the string
-                                    println!("Startup deep link temp_token: {}", temp_token);
+                                if param.starts_with("code=") {
+                                    code = Some(param[5..].to_string());
+                                } else if param.starts_with("state=") {
+                                    state = Some(param[6..].to_string());
+                                } else if param.starts_with("error=") {
+                                    error = Some(param[6..].to_string());
+                                }
+                            }
+                            
+                            if let Some(error) = error {
+                                println!("OAuth error on startup: {}", error);
+                                continue;
+                            }
+                            
+                            if let Some(code) = code {
+                                if let Some(state) = state {
+                                    println!("Startup deep link authorization code: {} and state: {}", code, state);
                                     
                                     let api_config = app.state::<ApiConfig>();
                                     let auth_state = app.state::<Arc<tauri::async_runtime::Mutex<AuthState>>>();
+                                    let pkce_state = app.state::<Arc<tauri::async_runtime::Mutex<Option<PkceState>>>>();
                                     
-                                    // Clone the values we need for the async task
-                                    let temp_token_clone = temp_token.clone();
+                                    let code_clone = code.clone();
+                                    let state_clone = state.clone();
                                     let api_config_clone = api_config.inner().clone();
                                     let auth_state_clone = auth_state.inner().clone();
+                                    let pkce_state_clone = pkce_state.inner().clone();
                                     
                                     tauri::async_runtime::spawn(async move {
-                                        // Create a new client for the token exchange
                                         let client = reqwest::Client::new();
+                                        
+                                        let stored_pkce = {
+                                            let pkce_guard = pkce_state_clone.lock().await;
+                                            pkce_guard.clone()
+                                        };
+
+                                        let pkce = match stored_pkce {
+                                            Some(pkce) => {
+                                                if pkce.is_expired(600) {
+                                                    eprintln!("PKCE state expired. Please restart authentication.");
+                                                    return;
+                                                }
+                                                
+                                                if pkce.state != state_clone {
+                                                    eprintln!("State parameter mismatch. Possible CSRF attack.");
+                                                    return;
+                                                }
+                                                
+                                                pkce
+                                            }
+                                            None => {
+                                                eprintln!("No PKCE state found. Please restart authentication.");
+                                                return;
+                                            }
+                                        };
+
                                         let response = client
-                                            .post(&format!("{}/api/v1/desktop/exchange_token", api_config_clone.base_url))
-                                            .json(&serde_json::json!({
-                                                "temp_token": temp_token_clone
-                                            }))
+                                            .post(&format!("{}/oauth/token", api_config_clone.base_url))
+                                            .form(&[
+                                                ("grant_type", "authorization_code"),
+                                                ("code", &code_clone),
+                                                ("client_id", "BPr5VekIV-xuQ2ZhmxbGaahJ3XVd7gM83pql-HYGYxQ"),
+                                                ("redirect_uri", "hackatime://auth/callback"),
+                                                ("code_verifier", &pkce.code_verifier),
+                                            ])
                                             .send()
                                             .await;
-                                        
+
                                         match response {
                                             Ok(resp) => {
                                                 if resp.status().is_success() {
                                                     if let Ok(token_response) = resp.json::<serde_json::Value>().await {
                                                         if let Some(access_token) = token_response["access_token"].as_str() {
-                                                            if let Some(user_info) = token_response["user"].as_object() {
-                                                                // Convert to HashMap
-                                                                let mut user_info_map = HashMap::new();
-                                                                for (key, value) in user_info {
+                                                            let user_response = client
+                                                                .get(&format!("{}/api/v1/authenticated/me", api_config_clone.base_url))
+                                                                .bearer_auth(access_token)
+                                                                .send()
+                                                                .await;
+
+                                                            let user_info = match user_response {
+                                                                Ok(resp) if resp.status().is_success() => {
+                                                                    resp.json::<serde_json::Value>().await.unwrap_or_else(|_| serde_json::json!({}))
+                                                                }
+                                                                _ => serde_json::json!({})
+                                                            };
+
+                                                            let mut user_info_map = HashMap::new();
+                                                            if let Some(obj) = user_info.as_object() {
+                                                                for (key, value) in obj {
                                                                     user_info_map.insert(key.clone(), value.clone());
                                                                 }
-                                                                
-                                                                
-                                                                // Update auth state
-                                                                let mut auth_state = auth_state_clone.lock().await;
-                                                                auth_state.is_authenticated = true;
-                                                                auth_state.access_token = Some(access_token.to_string());
-                                                                auth_state.user_info = Some(user_info_map);
-                                                                
-                                                                // Save auth state to disk
-                                                                let auth_state_to_save = auth_state.clone();
-                                                                drop(auth_state); // Release the lock before the async call
-                                                                if let Err(e) = save_auth_state(auth_state_to_save).await {
-                                                                    eprintln!("Failed to save auth state: {}", e);
-                                                                }
-                                                                
-                                                                println!("Startup authentication successful!");
                                                             }
+
+                                                            let mut auth_state = auth_state_clone.lock().await;
+                                                            auth_state.is_authenticated = true;
+                                                            auth_state.access_token = Some(access_token.to_string());
+                                                            auth_state.user_info = Some(user_info_map);
+
+                                                            let auth_state_to_save = auth_state.clone();
+                                                            drop(auth_state);
+                                                            if let Err(e) = save_auth_state(auth_state_to_save).await {
+                                                                eprintln!("Failed to save auth state: {}", e);
+                                                            }
+
+                                                            {
+                                                                let mut stored_pkce = pkce_state_clone.lock().await;
+                                                                *stored_pkce = None;
+                                                            }
+
+                                                            println!("Startup OAuth authentication successful!");
                                                         }
                                                     }
                                                 } else {
@@ -2311,6 +2593,8 @@ pub fn run() {
                                             }
                                         }
                                     });
+                                } else {
+                                    println!("No state parameter found in startup OAuth callback");
                                 }
                             }
                         }

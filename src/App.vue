@@ -29,7 +29,7 @@ const authState = ref<AuthState>({
 });
 
 const apiConfig = ref<ApiConfig>({
-  base_url: "http://localhost:3000",
+  base_url: "",
 });
 
 const isConfigOpen = ref(false);
@@ -105,11 +105,19 @@ onMounted(async () => {
     const startUrls = await getCurrent();
     if (startUrls && startUrls.length > 0) {
       console.log("App started with deep link:", startUrls);
-      // The Rust backend will handle the deep link processing
-      // We just need to refresh the auth state after processing
-      setTimeout(async () => {
-        await loadAuthState();
-      }, 1000); // Give the backend time to process the deep link
+      // Check if it's an OAuth callback
+      const hasOAuthCallback = startUrls.some(url => 
+        url.startsWith('hackatime://auth/callback')
+      );
+      
+      if (hasOAuthCallback) {
+        console.log("OAuth callback detected, refreshing auth state...");
+        // The Rust backend will handle the deep link processing
+        // We just need to refresh the auth state after processing
+        setTimeout(async () => {
+          await loadAuthState();
+        }, 1000); // Give the backend time to process the deep link
+      }
     }
   } catch (error) {
     console.error("Failed to get current deep link:", error);
@@ -119,11 +127,19 @@ onMounted(async () => {
   try {
     await onOpenUrl((urls) => {
       console.log("Deep link received in frontend:", urls);
-      // The Rust backend handles the actual processing
-      // We just need to refresh the auth state
-      setTimeout(async () => {
-        await loadAuthState();
-      }, 1000); // Give the backend time to process the deep link
+      // Check if it's an OAuth callback
+      const hasOAuthCallback = urls.some(url => 
+        url.startsWith('hackatime://auth/callback')
+      );
+      
+      if (hasOAuthCallback) {
+        console.log("OAuth callback detected, refreshing auth state...");
+        // The Rust backend handles the actual processing
+        // We just need to refresh the auth state
+        setTimeout(async () => {
+          await loadAuthState();
+        }, 1000); // Give the backend time to process the deep link
+      }
     });
   } catch (error) {
     console.error("Failed to set up deep link listener:", error);
@@ -228,7 +244,10 @@ async function registerPresenceConnection() {
 
 async function loadApiConfig() {
   try {
-    apiConfig.value = await invoke("get_api_config");
+    const config = await invoke("get_api_config") as ApiConfig;
+    console.log("Loaded API config from backend:", config);
+    apiConfig.value = config;
+    console.log("Updated apiConfig.value:", apiConfig.value);
   } catch (error) {
     console.error("Failed to load API config:", error);
   }
@@ -300,8 +319,8 @@ async function authenticate() {
   try {
     await invoke("authenticate_with_rails", { apiConfig: apiConfig.value });
     
-    // Show instructions for manual token entry
-    alert(`Authentication opened in browser!\n\nAfter completing OAuth in the browser:\n1. Copy the temporary token from the URL\n2. Use the "Test Authentication" button below\n3. Enter the token when prompted\n\nFor development, you can also use the test button to simulate authentication.`);
+    // Show instructions for OAuth completion
+    alert(`OAuth authentication opened in browser!\n\nInstructions:\n1. Complete the OAuth flow in your browser\n2. The app will automatically handle the callback\n3. If the callback doesn't work, you can manually paste the authorization code from the URL\n\nFor manual entry:\n- Copy the 'code' parameter from the callback URL\n- Use the "Direct OAuth" field below to paste it`);
   } catch (error) {
     console.error("Authentication failed:", error);
     alert("Authentication failed: " + (error instanceof Error ? error.message : String(error)));
@@ -348,7 +367,7 @@ async function copyApiKey() {
 
 async function handleDirectOAuthAuth() {
   if (!directOAuthToken.value.trim()) {
-    alert("Please enter an OAuth token");
+    alert("Please enter an OAuth authorization code or access token");
     return;
   }
   
@@ -379,6 +398,7 @@ async function handleDirectOAuthAuth() {
     }
     
     directOAuthToken.value = ""; // Clear the input
+    alert("Authentication successful! You are now logged in.");
   } catch (error) {
     console.error("Direct OAuth auth failed:", error);
     alert("Direct OAuth auth failed: " + error);
@@ -561,7 +581,7 @@ function getPageTitle(): string {
             id="api-url"
             v-model="apiConfig.base_url" 
             type="url" 
-            placeholder="http://localhost:3000"
+            placeholder="http://dogwood.local:3000"
             class="w-full p-3 bg-bg-secondary border border-border-secondary rounded-xl text-text-primary text-base box-border focus:outline-none focus:border-accent-primary focus:shadow-[0_0_0_2px_rgba(200,57,79,0.2)]"
           />
         </div>
