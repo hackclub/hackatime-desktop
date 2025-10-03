@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/hackclub/hackatime-desktop/compare/app-v1.0.0...app-v1.0.1) (2025-10-03)
+
+
+### 🐛 Bugfixes
+
+* configure package manager ([320bffb](https://github.com/hackclub/hackatime-desktop/commit/320bffb5eb8f9c69d3aa53c1d6cccb6e72789b7b))
+
 ## 1.0.0 (2025-10-03)
 
 
