@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.3](https://github.com/hackclub/hackatime-desktop/compare/app-v1.1.2...app-v1.1.3) (2025-10-03)
+
+
+### 🐛 Bugfixes
+
+* change deeplink config property name ([f4b6778](https://github.com/hackclub/hackatime-desktop/commit/f4b6778fe83a4ddc84dd8e172ade5101cfe6be11))
+
 ## [1.1.2](https://github.com/hackclub/hackatime-desktop/compare/app-v1.1.1...app-v1.1.2) (2025-10-03)
 
 
