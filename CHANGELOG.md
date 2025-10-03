@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.8](https://github.com/hackclub/hackatime-desktop/compare/app-v1.0.7...app-v1.0.8) (2025-10-03)
+
+
+### 👽 Miscellaneous
+
+* **ci:** update binaries path ([8efd51a](https://github.com/hackclub/hackatime-desktop/commit/8efd51a97b716cdbd582d7e8e8674ab8895447d5))
+
 ## [1.0.7](https://github.com/hackclub/hackatime-desktop/compare/app-v1.0.6...app-v1.0.7) (2025-10-03)
 
 
