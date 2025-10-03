@@ -7,8 +7,8 @@
      }
     ],
     "packages": {
-      "apps": {
-        "package-name": "apps",
+      ".": {
+        "package-name": "app",
         "release-type": "node",
         "prerelease": false,
         "include-v-in-tag": true,
