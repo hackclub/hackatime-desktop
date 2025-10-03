@@ -2,117 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- App Sandbox - Required for Mac App Store distribution -->
-    <key>com.apple.security.app-sandbox</key>
-    <true/>
-    
-    <!-- Network Access - Required for API calls to hackatime backend -->
-    <key>com.apple.security.network.client</key>
-    <true/>
-    
-    <!-- Outgoing Network Connections - Required for HTTP/HTTPS requests -->
-    <key>com.apple.security.network.outgoing</key>
-    <true/>
-    
-    <!-- File System Access - Required for config files and database -->
-    <key>com.apple.security.files.user-selected.read-write</key>
-    <true/>
-    
-    <!-- Downloads Folder Access - Required for config file creation -->
-    <key>com.apple.security.files.downloads.read-write</key>
-    <true/>
-    
-    <!-- User's Home Directory Access - Required for .wakatime.cfg creation -->
-    <key>com.apple.security.files.home-relative-path.read-write</key>
-    <true/>
-    
-    <!-- Temporary Directory Access - Required for temp files -->
-    <key>com.apple.security.temporary-exception.files.absolute-path.read-write</key>
-    <array>
-        <string>/tmp/</string>
-        <string>/var/tmp/</string>
-    </array>
-    
-    <!-- Process Execution - Required for process monitoring -->
-    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
-    <true/>
-    
-    <!-- Hardened Runtime - Required for notarization -->
-    <key>com.apple.security.cs.allow-jit</key>
-    <true/>
-    
-    <!-- Allow Dynamic Code Loading - Required for some Rust libraries -->
-    <key>com.apple.security.cs.allow-dyld-environment-variables</key>
-    <true/>
-    
-    <!-- System Extension Loading - Not needed but safe to include -->
     <key>com.apple.security.cs.disable-library-validation</key>
     <true/>
-    
-    <!-- Camera Access - Not needed for this app -->
-    <!-- <key>com.apple.security.device.camera</key>
-    <false/> -->
-    
-    <!-- Microphone Access - Not needed for this app -->
-    <!-- <key>com.apple.security.device.microphone</key>
-    <false/> -->
-    
-    <!-- USB Device Access - Not needed for this app -->
-    <!-- <key>com.apple.security.device.usb</key>
-    <false/> -->
-    
-    <!-- Bluetooth Access - Not needed for this app -->
-    <!-- <key>com.apple.security.device.bluetooth</key>
-    <false/> -->
-    
-    <!-- Location Access - Not needed for this app -->
-    <!-- <key>com.apple.security.personal-information.location</key>
-    <false/> -->
-    
-    <!-- Address Book Access - Not needed for this app -->
-    <!-- <key>com.apple.security.personal-information.addressbook</key>
-    <false/> -->
-    
-    <!-- Calendar Access - Not needed for this app -->
-    <!-- <key>com.apple.security.personal-information.calendars</key>
-    <false/> -->
-    
-    <!-- Contacts Access - Not needed for this app -->
-    <!-- <key>com.apple.security.personal-information.contacts</key>
-    <false/> -->
-    
-    <!-- iCloud Access - Not needed for this app -->
-    <!-- <key>com.apple.developer.icloud-container-identifiers</key>
-    <array></array> -->
-    
-    <!-- Push Notifications - Not needed for this app -->
-    <!-- <key>com.apple.developer.aps-environment</key>
-    <string>development</string> -->
-    
-    <!-- App Groups - Not needed for this app -->
-    <!-- <key>com.apple.security.application-groups</key>
-    <array></array> -->
-    
-    <!-- Keychain Access - May be needed for storing sensitive data -->
-    <key>keychain-access-groups</key>
-    <array>
-        <string>$(AppIdentifierPrefix)com.hackclub.hackatime</string>
-    </array>
-    
-    <!-- Inter-App Communication - Required for deep links -->
-    <key>com.apple.security.automation.apple-events</key>
+    <key>com.apple.security.cs.allow-dyld-environment-variables</key>
     <true/>
-    
-    <!-- Printing - Not needed for this app -->
-    <!-- <key>com.apple.security.print</key>
-    <true/> -->
-    
-    <!-- Audio Input/Output - Not needed for this app -->
-    <!-- <key>com.apple.security.device.audio-input</key>
-    <false/> -->
-    
-    <!-- Serial Port Access - Not needed for this app -->
-    <!-- <key>com.apple.security.device.serial</key>
-    <false/> -->
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+    <key>com.apple.security.device.camera</key>
+    <true/>
 </dict>
 </plist>
