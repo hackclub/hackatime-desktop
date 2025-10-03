@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/hackclub/hackatime-desktop/compare/app-v1.0.1...app-v1.0.2) (2025-10-03)
+
+
+### 👽 Miscellaneous
+
+* **ci:** update workflow to current path ([77925a9](https://github.com/hackclub/hackatime-desktop/commit/77925a906e0879b72ff45234b7fc8855305e9a88))
+
 ## [1.0.1](https://github.com/hackclub/hackatime-desktop/compare/app-v1.0.0...app-v1.0.1) (2025-10-03)
 
 
