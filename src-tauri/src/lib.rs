@@ -12,6 +12,7 @@ use sha2::{Sha256, Digest};
 use base64::{Engine as _, engine::general_purpose};
 use rand::{Rng, thread_rng};
 use rand::distributions::Alphanumeric;
+use chrono::Datelike;
 
 mod database;
 mod discord_rpc;
@@ -217,6 +218,12 @@ async fn get_api_key(
         return Err("Not authenticated".to_string());
     }
 
+    let base_url = if api_config.base_url.is_empty() {
+        "https://hackatime.hackclub.com"
+    } else {
+        &api_config.base_url
+    };
+
     let access_token = auth_state
         .access_token
         .as_ref()
@@ -224,7 +231,7 @@ async fn get_api_key(
 
     let client = reqwest::Client::new();
     let response = client
-        .get(&format!("{}/api/v1/authenticated/api_key", api_config.base_url))
+        .get(&format!("{}/api/v1/authenticated/api_keys", base_url))
         .bearer_auth(access_token)
         .send()
         .await
@@ -243,9 +250,9 @@ async fn get_api_key(
         .await
         .map_err(|e| format!("Failed to parse API key response: {}", e))?;
 
-    let api_key = api_key_response["api_key"]
+    let api_key = api_key_response["token"]
         .as_str()
-        .ok_or("No API key in response")?;
+        .ok_or("No token in response")?;
 
     Ok(api_key.to_string())
 }
@@ -793,40 +800,6 @@ struct SessionData {
     heartbeat_count: u32,
 }
 
-#[tauri::command]
-async fn register_presence_connection(
-    api_config: ApiConfig,
-    state: State<'_, Arc<tauri::async_runtime::Mutex<AuthState>>>,
-) -> Result<(), String> {
-    let auth_state = state.lock().await;
-
-    if !auth_state.is_authenticated {
-        return Err("Not authenticated".to_string());
-    }
-
-    let access_token = auth_state
-        .access_token
-        .as_ref()
-        .ok_or("No access token available")?;
-
-    let client = reqwest::Client::new();
-    let response = client
-        .post(&format!("{}/api/v1/presence/register", api_config.base_url))
-        .bearer_auth(access_token)
-        .send()
-        .await
-        .map_err(|e| format!("Failed to register presence connection: {}", e))?;
-
-    if !response.status().is_success() {
-        let error_text = response
-            .text()
-            .await
-            .unwrap_or_else(|_| "Unknown error".to_string());
-        return Err(format!("Presence registration failed: {}", error_text));
-    }
-
-    Ok(())
-}
 
 #[tauri::command]
 async fn get_latest_heartbeat(
@@ -841,6 +814,12 @@ async fn get_latest_heartbeat(
         return Err("Not authenticated".to_string());
     }
 
+    let base_url = if api_config.base_url.is_empty() {
+        "https://hackatime.hackclub.com"
+    } else {
+        &api_config.base_url
+    };
+
     let access_token = auth_state
         .access_token
         .as_ref()
@@ -849,8 +828,8 @@ async fn get_latest_heartbeat(
     let client = reqwest::Client::new();
     let response = client
         .get(&format!(
-            "{}/api/v1/presence/latest_heartbeat",
-            api_config.base_url
+            "{}/api/v1/authenticated/heartbeats/latest",
+            base_url
         ))
         .bearer_auth(access_token)
         .send()
@@ -993,40 +972,6 @@ async fn get_latest_heartbeat(
     Ok(heartbeat_response)
 }
 
-#[tauri::command]
-async fn ping_presence_connection(
-    api_config: ApiConfig,
-    state: State<'_, Arc<tauri::async_runtime::Mutex<AuthState>>>,
-) -> Result<(), String> {
-    let auth_state = state.lock().await;
-
-    if !auth_state.is_authenticated {
-        return Err("Not authenticated".to_string());
-    }
-
-    let access_token = auth_state
-        .access_token
-        .as_ref()
-        .ok_or("No access token available")?;
-
-    let client = reqwest::Client::new();
-    let response = client
-        .post(&format!("{}/api/v1/presence/ping", api_config.base_url))
-        .bearer_auth(access_token)
-        .send()
-        .await
-        .map_err(|e| format!("Failed to ping presence connection: {}", e))?;
-
-    if !response.status().is_success() {
-        let error_text = response
-            .text()
-            .await
-            .unwrap_or_else(|_| "Unknown error".to_string());
-        return Err(format!("Presence ping failed: {}", error_text));
-    }
-
-    Ok(())
-}
 
 #[allow(dead_code)]
 fn get_config_dir() -> Result<std::path::PathBuf, String> {
@@ -1190,6 +1135,12 @@ async fn get_projects(
         return Err("Not authenticated".to_string());
     }
 
+    let base_url = if api_config.base_url.is_empty() {
+        "https://hackatime.hackclub.com"
+    } else {
+        &api_config.base_url
+    };
+
     let access_token = auth_state
         .access_token
         .as_ref()
@@ -1199,7 +1150,7 @@ async fn get_projects(
     let response = client
         .get(&format!(
             "{}/api/v1/authenticated/projects",
-            api_config.base_url
+            base_url
         ))
         .bearer_auth(access_token)
         .send()
@@ -1234,6 +1185,12 @@ async fn get_project_details(
         return Err("Not authenticated".to_string());
     }
 
+    let base_url = if api_config.base_url.is_empty() {
+        "https://hackatime.hackclub.com"
+    } else {
+        &api_config.base_url
+    };
+
     let access_token = auth_state
         .access_token
         .as_ref()
@@ -1243,7 +1200,7 @@ async fn get_project_details(
     let response = client
         .get(&format!(
             "{}/api/v1/authenticated/projects/{}",
-            api_config.base_url,
+            base_url,
             urlencoding::encode(&project_name)
         ))
         .bearer_auth(access_token)
@@ -1351,6 +1308,12 @@ async fn get_statistics_data(
         return Err("Not authenticated".to_string());
     }
 
+    let base_url = if api_config.base_url.is_empty() {
+        "https://hackatime.hackclub.com"
+    } else {
+        &api_config.base_url
+    };
+
     let access_token = auth_state
         .access_token
         .as_ref()
@@ -1358,37 +1321,140 @@ async fn get_statistics_data(
 
     let client = reqwest::Client::new();
 
-    // Get dashboard stats from Ruby API
-    let response = client
+    let end_date = chrono::Utc::now().date_naive();
+    
+    let mut daily_hours = serde_json::Map::new();
+    let mut total_seconds = 0u64;
+    
+    for days_ago in 0..7 {
+        let date = end_date - chrono::Duration::days(days_ago);
+        let date_str = date.format("%Y-%m-%d").to_string();
+        
+        let day_response = client
+            .get(&format!(
+                "{}/api/v1/authenticated/hours?start_date={}&end_date={}",
+                base_url,
+                date_str,
+                date_str
+            ))
+            .bearer_auth(access_token)
+            .send()
+            .await;
+        
+        match day_response {
+            Ok(response) if response.status().is_success() => {
+                if let Ok(day_data) = response.json::<serde_json::Value>().await {
+                    let seconds = day_data["total_seconds"].as_u64().unwrap_or(0);
+                    total_seconds += seconds;
+                    
+                    let day_name = match date.weekday() {
+                        chrono::Weekday::Mon => "Mon",
+                        chrono::Weekday::Tue => "Tue",
+                        chrono::Weekday::Wed => "Wed",
+                        chrono::Weekday::Thu => "Thu",
+                        chrono::Weekday::Fri => "Fri",
+                        chrono::Weekday::Sat => "Sat",
+                        chrono::Weekday::Sun => "Sun",
+                    };
+                    
+                    daily_hours.insert(date_str.clone(), serde_json::json!({
+                        "date": date_str,
+                        "day_name": day_name,
+                        "hours": seconds as f64 / 3600.0,
+                        "seconds": seconds
+                    }));
+                }
+            }
+            _ => {
+                let day_name = match date.weekday() {
+                    chrono::Weekday::Mon => "Mon",
+                    chrono::Weekday::Tue => "Tue",
+                    chrono::Weekday::Wed => "Wed",
+                    chrono::Weekday::Thu => "Thu",
+                    chrono::Weekday::Fri => "Fri",
+                    chrono::Weekday::Sat => "Sat",
+                    chrono::Weekday::Sun => "Sun",
+                };
+                
+                daily_hours.insert(date_str.clone(), serde_json::json!({
+                    "date": date_str,
+                    "day_name": day_name,
+                    "hours": 0.0,
+                    "seconds": 0
+                }));
+            }
+        }
+    }
+    
+    let all_time_start = end_date - chrono::Duration::days(365);
+    let all_time_response = client
         .get(&format!(
-            "{}/api/v1/authenticated/dashboard_stats",
-            api_config.base_url
+            "{}/api/v1/authenticated/hours?start_date={}&end_date={}",
+            base_url,
+            all_time_start.format("%Y-%m-%d"),
+            end_date.format("%Y-%m-%d")
+        ))
+        .bearer_auth(access_token)
+        .send()
+        .await;
+    
+    let all_time_seconds = match all_time_response {
+        Ok(response) if response.status().is_success() => {
+            if let Ok(data) = response.json::<serde_json::Value>().await {
+                data["total_seconds"].as_u64().unwrap_or(0)
+            } else {
+                0
+            }
+        }
+        _ => 0
+    };
+    
+    let hours_data = serde_json::json!({
+        "weekly_stats": {
+            "time_coded_seconds": total_seconds,
+            "daily_hours": daily_hours
+        },
+        "all_time_stats": {
+            "time_coded_seconds": all_time_seconds
+        }
+    });
+
+    let streak_response = client
+        .get(&format!(
+            "{}/api/v1/authenticated/streak",
+            base_url
         ))
         .bearer_auth(access_token)
         .send()
         .await
-        .map_err(|e| format!("Failed to fetch dashboard stats: {}", e))?;
+        .map_err(|e| format!("Failed to fetch streak: {}", e))?;
 
-    if !response.status().is_success() {
-        let error_text = response
+    if !streak_response.status().is_success() {
+        let error_text = streak_response
             .text()
             .await
             .unwrap_or_else(|_| "Unknown error".to_string());
-        return Err(format!("Dashboard stats request failed: {}", error_text));
+        return Err(format!("Streak request failed: {}", error_text));
     }
 
-    let dashboard_stats: serde_json::Value = response
+    let streak_data: serde_json::Value = streak_response
         .json()
         .await
-        .map_err(|e| format!("Failed to parse dashboard stats: {}", e))?;
+        .map_err(|e| format!("Failed to parse streak data: {}", e))?;
 
-    // Process the data in Rust for heavy computations
+    let mut dashboard_stats = hours_data;
+    if let Some(streak) = streak_data.get("current_streak") {
+        dashboard_stats["current_streak"] = streak.clone();
+    }
+    if let Some(longest) = streak_data.get("longest_streak") {
+        dashboard_stats["longest_streak"] = longest.clone();
+    }
+
     let statistics = process_statistics_data(dashboard_stats).await?;
 
     Ok(statistics)
 }
 
-// Tray-related commands
 #[tauri::command]
 async fn show_window(app: tauri::AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("main") {
@@ -1620,36 +1686,43 @@ async fn generate_chart_data(
 ) -> Result<Vec<ChartData>, String> {
     let mut charts = Vec::new();
 
-    // Daily hours chart
+    let mut chart_data = Vec::new();
+    let mut labels = Vec::new();
+    
     if let Some(daily_hours) = dashboard_stats["weekly_stats"]["daily_hours"].as_object() {
-        let mut chart_data = Vec::new();
-        let mut labels = Vec::new();
-
         for (_date, day_data) in daily_hours {
             if let Some(hours) = day_data["hours"].as_f64() {
                 labels.push(day_data["day_name"].as_str().unwrap_or("").to_string());
                 chart_data.push(hours);
             }
         }
-
-        charts.push(ChartData {
-            id: "daily_hours".to_string(),
-            title: "Daily Coding Hours".to_string(),
-            chart_type: "bar".to_string(),
-            data: serde_json::json!({
-                "labels": labels,
-                "datasets": [{
-                    "label": "Hours",
-                    "data": chart_data,
-                    "backgroundColor": "#FB4B20",
-                    "borderColor": "#FB4B20",
-                    "borderWidth": 1
-                }]
-            }),
-            period: "Last 7 days".to_string(),
-            color_scheme: "orange".to_string(),
-        });
     }
+    
+    if chart_data.is_empty() {
+        let day_names = vec!["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+        for day in day_names {
+            labels.push(day.to_string());
+            chart_data.push(0.0);
+        }
+    }
+
+    charts.push(ChartData {
+        id: "daily_hours".to_string(),
+        title: "Daily Coding Hours".to_string(),
+        chart_type: "bar".to_string(),
+        data: serde_json::json!({
+            "labels": labels,
+            "datasets": [{
+                "label": "Hours",
+                "data": chart_data,
+                "backgroundColor": "#FB4B20",
+                "borderColor": "#FB4B20",
+                "borderWidth": 1
+            }]
+        }),
+        period: "Last 7 days".to_string(),
+        color_scheme: "orange".to_string(),
+    });
 
     // Language distribution pie chart
     if let Some(top_language) = dashboard_stats["weekly_stats"]["top_language"].as_object() {
@@ -1677,24 +1750,22 @@ async fn generate_chart_data(
         });
     }
 
-    // Weekly trend line chart
     let mut trend_data = Vec::new();
     let mut trend_labels = Vec::new();
 
+    let current_week_seconds = dashboard_stats["weekly_stats"]["time_coded_seconds"]
+        .as_u64()
+        .unwrap_or(0);
+    
     // Simulate 4 weeks of data
     for week in 0..4 {
         let week_hours = if week == 3 {
-            dashboard_stats["weekly_stats"]["time_coded_seconds"]
-                .as_u64()
-                .unwrap_or(0) as f64
-                / 3600.0
+            current_week_seconds as f64 / 3600.0
+        } else if current_week_seconds == 0 {
+            0.0
         } else {
             // Simulate previous weeks
-            (dashboard_stats["weekly_stats"]["time_coded_seconds"]
-                .as_u64()
-                .unwrap_or(0) as f64
-                / 3600.0)
-                * (0.8 + (week as f64 * 0.1))
+            (current_week_seconds as f64 / 3600.0) * (0.8 + (week as f64 * 0.1))
         };
 
         trend_data.push(week_hours);
@@ -2077,8 +2148,8 @@ pub fn run() {
             handle_deep_link_callback,
             logout,
             test_auth_callback,
-            get_api_key,
             authenticate_with_direct_oauth,
+            get_api_key,
             setup_hackatime_macos_linux,
             setup_hackatime_windows,
             test_hackatime_heartbeat,
@@ -2086,9 +2157,7 @@ pub fn run() {
             save_auth_state,
             load_auth_state,
             clear_auth_state,
-            register_presence_connection,
             get_latest_heartbeat,
-            ping_presence_connection,
             get_hackatime_directories,
             cleanup_old_sessions,
             get_session_stats,

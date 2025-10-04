@@ -18,12 +18,17 @@ export class KubeTimeApi {
   async initialize() {
     try {
       const config: ApiConfig = await invoke("get_api_config");
-      this.baseUrl = config.base_url;
+      if (config.base_url && config.base_url.trim()) {
+        this.baseUrl = config.base_url;
+      }
       
       const authState: AuthState = await invoke("get_auth_state");
       this.accessToken = authState.access_token;
     } catch (error) {
       console.error("Failed to initialize API:", error);
+      if (!this.baseUrl || !this.baseUrl.trim()) {
+        this.baseUrl = "https://hackatime.hackclub.com";
+      }
     }
   }
 
@@ -51,78 +56,92 @@ export class KubeTimeApi {
     }
   }
 
+  async getHours(startDate?: string, endDate?: string) {
+    if (!this.accessToken) {
+      throw new Error("Not authenticated");
+    }
+
+    try {
+      const params = new URLSearchParams();
+      if (startDate) params.append('start_date', startDate);
+      if (endDate) params.append('end_date', endDate);
+      
+      const url = `${this.baseUrl}/api/v1/authenticated/hours${params.toString() ? `?${params.toString()}` : ''}`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Failed to fetch hours:", error);
+      throw error;
+    }
+  }
+
+  async getWeeklyHours() {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - 7);
+
+    const formatDate = (date: Date) => date.toISOString().split('T')[0];
+    
+    return this.getHours(formatDate(startDate), formatDate(endDate));
+  }
+
+  async getStreak() {
+    if (!this.accessToken) {
+      throw new Error("Not authenticated");
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/api/v1/authenticated/streak`, {
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Failed to fetch streak:", error);
+      throw error;
+    }
+  }
+
   async getStats() {
     if (!this.accessToken) {
       throw new Error("Not authenticated");
     }
 
     try {
-      // Call the current user's dashboard stats endpoint
-      const response = await fetch(`${this.baseUrl}/api/v1/authenticated/dashboard_stats`, {
-        headers: {
-          'Authorization': `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const [hoursData, streakData] = await Promise.all([
+        this.getWeeklyHours(),
+        this.getStreak()
+      ]);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
+      return {
+        ...hoursData,
+        current_streak: streakData.current_streak,
+        longest_streak: streakData.longest_streak
+      };
     } catch (error) {
       console.error("Failed to fetch stats:", error);
       throw error;
     }
   }
 
-  async getMyHeartbeats() {
-    if (!this.accessToken) {
-      throw new Error("Not authenticated");
-    }
-
-    try {
-      const response = await fetch(`${this.baseUrl}/api/v1/my/heartbeats`, {
-        headers: {
-          'Authorization': `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error("Failed to fetch heartbeats:", error);
-      throw error;
-    }
-  }
-
-  async getUserDashboardStats(username: string) {
-    if (!this.accessToken) {
-      throw new Error("Not authenticated");
-    }
-
-    try {
-      const response = await fetch(`${this.baseUrl}/api/v1/users/${username}/dashboard_stats`, {
-        headers: {
-          'Authorization': `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error("Failed to fetch user dashboard stats:", error);
-      throw error;
-    }
-  }
 
   async getCurrentPresence() {
     if (!this.accessToken) {
@@ -136,7 +155,7 @@ export class KubeTimeApi {
         return this.latestPresenceCache.data;
       }
       
-      const response = await fetch(`${this.baseUrl}/api/v1/presence/latest_heartbeat`, {
+      const response = await fetch(`${this.baseUrl}/api/v1/authenticated/heartbeats/latest`, {
         headers: {
           'Authorization': `Bearer ${this.accessToken}`,
           'Content-Type': 'application/json',

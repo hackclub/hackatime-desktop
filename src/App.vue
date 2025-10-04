@@ -56,7 +56,20 @@ const { currentTheme, toggleTheme } = useTheme();
 
 // Computed property for weekly chart data
 const weeklyChartData = computed(() => {
-  if (!userStats.value?.weekly_stats?.daily_hours) return [];
+  if (!userStats.value?.weekly_stats?.daily_hours) {
+    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const today = new Date();
+    return dayNames.map((dayName, index) => {
+      const date = new Date(today);
+      date.setDate(today.getDate() - (6 - index));
+      return {
+        date: date.toISOString().split('T')[0],
+        day_name: dayName,
+        hours: 0,
+        percentage: 0
+      };
+    });
+  }
   
   const dailyHours = userStats.value.weekly_stats.daily_hours;
   const maxHours = Math.max(...Object.values(dailyHours).map((day: any) => day.hours), 1);
@@ -173,10 +186,7 @@ async function loadAuthState() {
       authState.value = savedAuthState as AuthState;
       console.log("Loaded saved authentication state:", authState.value);
       
-      // If authenticated, load user data, stats, and API keys
       await loadUserData();
-      await loadApiKey();
-      await registerPresenceConnection();
     } else {
       // No saved state or not authenticated, get current state
       console.log("No saved auth state found, getting current state");
@@ -216,6 +226,8 @@ async function loadUserData() {
       console.error("Failed to load user dashboard stats:", error);
     }
     
+    await loadApiKey();
+    
     // Load presence data and start refresh
     await loadPresenceData();
     startPresenceRefresh();
@@ -231,16 +243,6 @@ async function loadApiKey() {
     console.error("Failed to load API key:", error);
   }
 }
-
-async function registerPresenceConnection() {
-  try {
-    await invoke("register_presence_connection", { apiConfig: apiConfig.value });
-    console.log("Presence connection registered successfully");
-  } catch (error) {
-    console.error("Failed to register presence connection:", error);
-  }
-}
-
 
 async function loadApiConfig() {
   try {
@@ -565,7 +567,7 @@ function getPageTitle(): string {
           </div>
           <div class="p-6 flex-1 overflow-y-auto">
             <Projects v-if="currentPage === 'projects'" :currentTheme="currentTheme" :toggleTheme="toggleTheme" :apiConfig="apiConfig" />
-            <Settings v-if="currentPage === 'settings'" :currentTheme="currentTheme" :toggleTheme="toggleTheme" :apiKey="apiKey" :showApiKey="showApiKey" @copyApiKey="copyApiKey" />
+            <Settings v-if="currentPage === 'settings'" :currentTheme="currentTheme" :toggleTheme="toggleTheme" :apiKey="apiKey" v-model:showApiKey="showApiKey" @copyApiKey="copyApiKey" />
           </div>
         </div>
       </div>
