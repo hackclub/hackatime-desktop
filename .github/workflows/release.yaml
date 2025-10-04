@@ -43,6 +43,10 @@ jobs:
           - windows-latest
           - ubuntu-22.04
     runs-on: '${{ matrix.platform }}'
+    permissions:
+      id-token: write
+      attestations: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -159,6 +163,33 @@ jobs:
       #     file-digest: SHA256
       #     timestamp-rfc3161: 'http://timestamp.acs.microsoft.com'
       #     timestamp-digest: SHA256
+      - name: Attest macOS binaries
+        if: 'startsWith(matrix.platform, ''macos'')'
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: |
+            src-tauri/target/*/release/bundle/*/*.dmg
+            src-tauri/target/*/release/bundle/*/*.app.tar.gz
+            src-tauri/target/release/bundle/*/*.dmg
+            src-tauri/target/release/bundle/*/*.app.tar.gz
+      - name: Attest Linux binaries
+        if: 'startsWith(matrix.platform, ''ubuntu'')'
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: |
+            src-tauri/target/release/bundle/*/*.AppImage
+            src-tauri/target/release/bundle/*/*.AppImage.tar.gz
+            src-tauri/target/release/bundle/*/*.deb
+            src-tauri/target/release/bundle/*/*.rpm
+      - name: Attest Windows binaries
+        if: 'startsWith(matrix.platform, ''windows'')'
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: |
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/msi/*.msi.zip
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/nsis/*.nsis.zip
       - name: 'upload ${{ matrix.platform }}'
         uses: actions/upload-artifact@v4
         with:
