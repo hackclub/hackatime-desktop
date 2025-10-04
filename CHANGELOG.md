@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.5](https://github.com/hackclub/hackatime-desktop/compare/app-v1.1.4...app-v1.1.5) (2025-10-04)
+
+
+### 🐛 Bugfixes
+
+* migrate api to new version ([4183bff](https://github.com/hackclub/hackatime-desktop/commit/4183bff4f6375a9462f060e46da812f378712a13))
+
 ## [1.1.4](https://github.com/hackclub/hackatime-desktop/compare/app-v1.1.3...app-v1.1.4) (2025-10-03)
 
 
