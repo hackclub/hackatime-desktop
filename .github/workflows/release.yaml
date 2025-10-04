@@ -194,7 +194,7 @@ jobs:
       - name: Get version from manifest
         id: get_version
         run: |
-          version=$(jq -r '.apps' .release-please-manifest.json)
+          version=$(jq -r '."."' .release-please-manifest.json)
           echo "version=$version" >> $GITHUB_OUTPUT
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -217,7 +217,7 @@ jobs:
           artifacts/ubuntu-22.04/release/bundle/appimage/*.AppImage.tar.gz.sig)
 
           WINDOWS_SIGNATURE=$(cat
-          "artifacts/windows-latest/release/bundle/nsis/Hackatime_${VERSION}_x64-setup.nsis.zip.sig")
+          "artifacts/windows-latest/release/bundle/nsis/Hackatime Desktop_${VERSION}_x64-setup.nsis.zip.sig")
 
 
           # Generate JSON file
@@ -231,32 +231,32 @@ jobs:
             "platforms": {
               "darwin-x86_64": {
                 "signature": "${DARWIN_SIGNATURE}",
-                "url": "${DOWNLOAD_URL_BASE}/releases/${VERSION}/macos-latest/universal-apple-darwin/release/bundle/macos/MARCUSK%20Launcher.app.tar.gz",
+                "url": "${DOWNLOAD_URL_BASE}/releases/${VERSION}/macos-latest/universal-apple-darwin/release/bundle/macos/Hackatime%20Desktop.app.tar.gz",
                 "install_urls": [
-                  "${DOWNLOAD_URL_BASE}/releases/${VERSION}/macos-latest/universal-apple-darwin/release/bundle/dmg/MARCUSK%20Launcher_${VERSION}_universal.dmg"
+                  "${DOWNLOAD_URL_BASE}/releases/${VERSION}/macos-latest/universal-apple-darwin/release/bundle/dmg/Hackatime%20Desktop_${VERSION}_universal.dmg"
                 ]
               },
               "darwin-aarch64": {
                 "signature": "${DARWIN_SIGNATURE}",
-                "url": "${DOWNLOAD_URL_BASE}/releases/${VERSION}/macos-latest/universal-apple-darwin/release/bundle/macos/MARCUSK%20Launcher.app.tar.gz",
+                "url": "${DOWNLOAD_URL_BASE}/releases/${VERSION}/macos-latest/universal-apple-darwin/release/bundle/macos/Hackatime%20Desktop.app.tar.gz",
                 "install_urls": [
-                  "${DOWNLOAD_URL_BASE}/releases/${VERSION}/macos-latest/universal-apple-darwin/release/bundle/macos/MARCUSK%20Launcher.app.tar.gz"
+                  "${DOWNLOAD_URL_BASE}/releases/${VERSION}/macos-latest/universal-apple-darwin/release/bundle/macos/Hackatime%20Desktop.app.tar.gz"
                 ]
               },
               "linux-x86_64": {
                 "signature": "${LINUX_SIGNATURE}",
-                "url": "${DOWNLOAD_URL_BASE}/releases/${VERSION}/ubuntu-22.04/release/bundle/appimage/MARCUSK%20Launcher_${VERSION}_amd64.AppImage.tar.gz",
+                "url": "${DOWNLOAD_URL_BASE}/releases/${VERSION}/ubuntu-22.04/release/bundle/appimage/Hackatime%20Desktop_${VERSION}_amd64.AppImage.tar.gz",
                 "install_urls": [
-                  "${DOWNLOAD_URL_BASE}/releases/${VERSION}/ubuntu-22.04/release/bundle/deb/MARCUSK%20Launcher_${VERSION}_amd64.deb",
-                  "${DOWNLOAD_URL_BASE}/releases/${VERSION}/ubuntu-22.04/release/bundle/appimage/MARCUSK%20Launcher_${VERSION}_amd64.AppImage",
-                  "${DOWNLOAD_URL_BASE}/releases/${VERSION}/ubuntu-22.04/release/bundle/rpm/MARCUSK%20Launcher-${VERSION}-1.x86_64.rpm"
+                  "${DOWNLOAD_URL_BASE}/releases/${VERSION}/ubuntu-22.04/release/bundle/deb/Hackatime%20Desktop_${VERSION}_amd64.deb",
+                  "${DOWNLOAD_URL_BASE}/releases/${VERSION}/ubuntu-22.04/release/bundle/appimage/Hackatime%20Desktop_${VERSION}_amd64.AppImage",
+                  "${DOWNLOAD_URL_BASE}/releases/${VERSION}/ubuntu-22.04/release/bundle/rpm/Hackatime%20Desktop-${VERSION}-1.x86_64.rpm"
                 ]
               },
               "windows-x86_64": {
                 "signature": "${WINDOWS_SIGNATURE}",
-                "url": "${DOWNLOAD_URL_BASE}/releases/${VERSION}/windows-latest/release/bundle/nsis/MARCUSK%20Launcher_${VERSION}_x64-setup.nsis.zip",
+                "url": "${DOWNLOAD_URL_BASE}/releases/${VERSION}/windows-latest/release/bundle/nsis/Hackatime%20Desktop_${VERSION}_x64-setup.nsis.zip",
                 "install_urls": [
-                  "${DOWNLOAD_URL_BASE}/releases/${VERSION}/windows-latest/release/bundle/nsis/MARCUSK%20Launcher_${VERSION}_x64-setup.exe"
+                  "${DOWNLOAD_URL_BASE}/releases/${VERSION}/windows-latest/release/bundle/nsis/Hackatime%20Desktop_${VERSION}_x64-setup.exe"
                 ]
               }
             }
