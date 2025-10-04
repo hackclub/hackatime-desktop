@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.9](https://github.com/hackclub/hackatime-desktop/compare/app-v1.1.8...app-v1.1.9) (2025-10-04)
+
+
+### 👽 Miscellaneous
+
+* **cI:** upload binaries to release ([224ba58](https://github.com/hackclub/hackatime-desktop/commit/224ba58a7026642910977a13cd2db9ea8e46589b))
+
 ## [1.1.8](https://github.com/hackclub/hackatime-desktop/compare/app-v1.1.7...app-v1.1.8) (2025-10-04)
 
 
