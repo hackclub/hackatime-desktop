@@ -2,7 +2,7 @@
 
 [![Release](https://github.com/hackclub/hackatime-desktop/actions/workflows/release.yaml/badge.svg)](https://github.com/hackclub/hackatime-desktop/actions/workflows/release.yaml)
 
-A beautiful desktop application for tracking your coding activity with [Hackatime](https://hackatime.hackclub.com). Built with Tauri, Vue 3, TypeScript, and Rust.
+Desktop app for [Hackatime](https://hackatime.hackclub.com). Built with Tauri, Vue 3, TypeScript, and Rust.
 
 ## 🛠️ Tech Stack
 
@@ -64,17 +64,17 @@ This project uses [**Conventional Commits**](https://www.conventionalcommits.org
 
 Use these commit types for Release Please to automatically detect changes:
 
-- **`feat:`** - A new feature (triggers minor version bump, e.g., 1.0.0 → 1.1.0)
+- **`feat:`** - A new feature 
   ```bash
   git commit -m "feat: add Discord RPC integration"
   ```
 
-- **`fix:`** - A bug fix (triggers patch version bump, e.g., 1.0.0 → 1.0.1)
+- **`fix:`** - A bug fix 
   ```bash
   git commit -m "fix: resolve authentication timeout issue"
   ```
 
-- **`chore:`** - Maintenance tasks, CI/CD, dependencies (no version bump unless breaking)
+- **`chore:`** - Maintenance tasks, CI/CD, dependencies 
   ```bash
   git commit -m "chore: update dependencies"
   git commit -m "chore(ci): update release workflow"
