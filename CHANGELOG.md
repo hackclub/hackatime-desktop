@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.7](https://github.com/hackclub/hackatime-desktop/compare/app-v1.1.6...app-v1.1.7) (2025-10-04)
+
+
+### 👽 Miscellaneous
+
+* **ci:** update s3 bucket name ([e9eb46c](https://github.com/hackclub/hackatime-desktop/commit/e9eb46cbc4102f268f0015de12842f825263187c))
+* update codeowners ([bb4f891](https://github.com/hackclub/hackatime-desktop/commit/bb4f8911781f8b0a53707f4b98ae14867a6b34f9))
+* update readme ([56bc33c](https://github.com/hackclub/hackatime-desktop/commit/56bc33ceacd31e08222055ab9c60cc741c093f3a))
+* update readme ([9b294de](https://github.com/hackclub/hackatime-desktop/commit/9b294dee2575bc18a9f63e94d5807bede7d4d7ce))
+
 ## [1.1.6](https://github.com/hackclub/hackatime-desktop/compare/app-v1.1.5...app-v1.1.6) (2025-10-04)
 
 
