@@ -202,63 +202,6 @@ jobs:
             src-tauri/target/release/bundle/nsis/*.exe
             src-tauri/target/release/bundle/nsis/*.nsis.zip
             src-tauri/target/release/bundle/nsis/*.nsis.zip.sig
-  upload-github-release:
-    needs: 
-      - build
-      - release-please
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          lfs: true
-      - name: Get version from manifest
-        id: get_version
-        run: |
-          version=$(jq -r '."."' .release-please-manifest.json)
-          echo "version=$version" >> $GITHUB_OUTPUT
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-      - name: Print directory structure
-        run: ls -R artifacts
-      - name: Upload macOS binaries to release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ steps.get_version.outputs.version }}
-          files: |
-            artifacts/macos-latest/universal-apple-darwin/release/bundle/dmg/*.dmg
-            artifacts/macos-latest/universal-apple-darwin/release/bundle/macos/*.app.tar.gz
-            artifacts/macos-latest/universal-apple-darwin/release/bundle/macos/*.app.tar.gz.sig
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Upload Linux binaries to release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ steps.get_version.outputs.version }}
-          files: |
-            artifacts/ubuntu-22.04/release/bundle/appimage/*.AppImage
-            artifacts/ubuntu-22.04/release/bundle/appimage/*.AppImage.tar.gz
-            artifacts/ubuntu-22.04/release/bundle/appimage/*.AppImage.tar.gz.sig
-            artifacts/ubuntu-22.04/release/bundle/deb/*.deb
-            artifacts/ubuntu-22.04/release/bundle/rpm/*.rpm
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Upload Windows binaries to release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ steps.get_version.outputs.version }}
-          files: |
-            artifacts/windows-latest/release/bundle/nsis/*.exe
-            artifacts/windows-latest/release/bundle/nsis/*.nsis.zip
-            artifacts/windows-latest/release/bundle/nsis/*.nsis.zip.sig
-            artifacts/windows-latest/release/bundle/msi/*.msi
-            artifacts/windows-latest/release/bundle/msi/*.msi.zip
-            artifacts/windows-latest/release/bundle/msi/*.msi.zip.sig
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   upload-s3:
     needs: build
     runs-on: ubuntu-latest
