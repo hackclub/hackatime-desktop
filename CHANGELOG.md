@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.8](https://github.com/hackclub/hackatime-desktop/compare/app-v1.1.7...app-v1.1.8) (2025-10-04)
+
+
+### 👽 Miscellaneous
+
+* **ci:** add attestations ([c05256a](https://github.com/hackclub/hackatime-desktop/commit/c05256acebd4ff8bd87fa7a910a94ce8bbe1000f))
+
 ## [1.1.7](https://github.com/hackclub/hackatime-desktop/compare/app-v1.1.6...app-v1.1.7) (2025-10-04)
 
 
