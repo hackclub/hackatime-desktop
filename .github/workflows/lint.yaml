@@ -39,23 +39,13 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.head_ref || github.ref }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Cache Docker layers
-        uses: actions/cache@v4
+      - name: Cache MegaLinter Docker image
+        uses: ScribeMD/docker-cache@0.5.0
         with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-megalinter-${{ hashFiles('.mega-linter.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-megalinter-
-
-      - name: Pull MegaLinter Docker image
-        run: |
-          docker pull oxsecurity/megalinter:v8 || true
+          key: docker-${{ runner.os }}-megalinter-rust-v8.8.0
 
       - name: Run MegaLinter
-        uses: oxsecurity/megalinter@v8
+        uses: oxsecurity/megalinter/flavors/rust@v8.8.0
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
           DEFAULT_BRANCH: main
