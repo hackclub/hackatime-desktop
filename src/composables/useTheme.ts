@@ -4,7 +4,7 @@ export type Theme = 'dark' | 'light'
 
 const currentTheme = ref<Theme>('dark')
 
-export function useTheme() {
+export function useTheme () {
   const setTheme = (theme: Theme) => {
     currentTheme.value = theme
     document.documentElement.className = theme
