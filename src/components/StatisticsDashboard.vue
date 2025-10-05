@@ -1,9 +1,9 @@
 <template>
-  <div v-if="statisticsData" class="space-y-6">
+  <div v-if="statisticsData" class="space-y-8">
     <!-- Trends Section -->
     <div>
-      <h2 class="text-xl font-semibold text-text-primary mb-4">Trends</h2>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <h2 class="text-xl font-semibold text-text-primary mb-8">Trends</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
         <StatisticsCard
           v-for="trend in statisticsData.trends"
           :key="trend.title"
@@ -20,8 +20,8 @@
 
     <!-- Charts Section -->
     <div>
-      <h2 class="text-xl font-semibold text-text-primary mb-4">Analytics</h2>
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <h2 class="text-xl font-semibold text-text-primary mb-8">Analytics</h2>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
         <ChartComponent
           v-for="chart in statisticsData.charts"
           :key="chart.id"
@@ -36,8 +36,9 @@
 
     <!-- Programmer Class Section -->
     <div>
-      <h2 class="text-xl font-semibold text-text-primary mb-4">Your Programmer Class</h2>
-      <div class="bg-bg-card border border-border-primary rounded-2xl p-6">
+      <h2 class="text-xl font-semibold text-text-primary mb-8">Your Programmer Class</h2>
+      <div class="card-3d mt-4">
+        <div class="rounded-[8px] border-2 border-black p-6 card-3d-front" style="background-color: #3D2C3E;">
         <div class="flex items-center justify-between mb-4">
           <div>
             <h3 class="text-2xl font-bold text-text-primary">{{ statisticsData.programmer_class.class_name }}</h3>
@@ -53,18 +54,19 @@
           <span 
             v-for="tech in statisticsData.programmer_class.technologies" 
             :key="tech"
-            class="px-3 py-1 bg-bg-secondary text-text-primary rounded-lg text-sm font-medium"
+            class="px-3 py-1 bg-[rgba(255,255,255,0.06)] text-text-primary rounded-lg text-sm font-medium"
           >
             {{ tech }}
           </span>
+        </div>
         </div>
       </div>
     </div>
 
     <!-- Insights Section -->
     <div>
-      <h2 class="text-xl font-semibold text-text-primary mb-4">Insights</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <h2 class="text-xl font-semibold text-text-primary mb-8">Insights</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
         <InsightCard
           v-for="insight in statisticsData.insights"
           :key="insight.title"
@@ -80,18 +82,7 @@
   </div>
 
   <!-- Loading State -->
-  <div v-else-if="isLoading" class="space-y-6">
-    <div class="animate-pulse">
-      <div class="h-6 bg-bg-secondary rounded w-32 mb-4"></div>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div v-for="i in 3" :key="i" class="bg-bg-card border border-border-primary rounded-2xl p-6">
-          <div class="h-4 bg-bg-secondary rounded w-24 mb-4"></div>
-          <div class="h-8 bg-bg-secondary rounded w-16 mb-2"></div>
-          <div class="h-3 bg-bg-secondary rounded w-20"></div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <RandomLoader v-else-if="isLoading" />
 
   <!-- Error State -->
   <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-2xl p-6">
@@ -111,6 +102,7 @@ import { invoke } from '@tauri-apps/api/core';
 import StatisticsCard from './StatisticsCard.vue';
 import ChartComponent from './ChartComponent.vue';
 import InsightCard from './InsightCard.vue';
+import RandomLoader from './RandomLoader.vue';
 
 interface StatisticsData {
   trends: Array<{
@@ -171,7 +163,7 @@ const loadStatistics = async () => {
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Unknown error occurred';
     console.error('Failed to load statistics:', err);
-    // Set some default data to prevent crashes
+    
     statisticsData.value = {
       trends: [],
       charts: [],
@@ -193,3 +185,9 @@ onMounted(() => {
   loadStatistics();
 });
 </script>
+
+<style scoped>
+.card-3d { position: relative; border-radius: 8px; padding: 0; }
+.card-3d::before { content: ''; position: absolute; inset: 0; border-radius: 8px; background: #2A1F2B; z-index: 0; }
+.card-3d-front { position: relative; transform: translateY(-6px); z-index: 1; }
+</style>

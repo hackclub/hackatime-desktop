@@ -13,23 +13,27 @@
     "windows": [
       {
         "title": "Hackatime Desktop",
-        "width": 800,
-        "height": 600,
+        "width": 1100,
+        "height": 700,
+        "minWidth": 1100,
+        "minHeight": 700,
         "visible": true,
         "skipTaskbar": false,
-        "decorations": true,
+        "decorations": false,
         "alwaysOnTop": false,
         "resizable": true,
         "minimizable": true,
         "maximizable": true,
-        "closable": true
+        "closable": true,
+        "hiddenTitle": true,
+        "transparent": true
       }
     ],
     "security": {
       "csp": null
     }
   },
-  "bundle": {
+    "bundle": {
     "active": true,
     "targets": "all",
     "createUpdaterArtifacts": "v1Compatible",

@@ -1,12 +1,14 @@
 <template>
-  <div class="bg-bg-card border border-border-primary rounded-2xl p-6 shadow-card">
+  <div class="card-3d">
+    <div class="rounded-[8px] border-2 border-black p-6 card-3d-front h-full flex flex-col" style="background-color: #3D2C3E;">
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold text-text-primary">{{ title }}</h3>
       <div class="text-sm text-text-secondary">{{ period }}</div>
     </div>
     
-    <div class="h-64">
+    <div class="h-64 flex-1">
       <canvas ref="chartCanvas"></canvas>
+    </div>
     </div>
   </div>
 </template>
@@ -31,7 +33,7 @@ import {
   PieController
 } from 'chart.js';
 
-// Register Chart.js components
+
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -64,7 +66,7 @@ let chartInstance: ChartJS | null = null;
 const createChart = () => {
   if (!chartCanvas.value) return;
 
-  // Destroy existing chart
+  
   if (chartInstance) {
     chartInstance.destroy();
   }
@@ -145,3 +147,9 @@ watch(() => props.data, () => {
   createChart();
 }, { deep: true });
 </script>
+
+<style scoped>
+.card-3d { position: relative; border-radius: 8px; padding: 0; }
+.card-3d::before { content: ''; position: absolute; inset: 0; border-radius: 8px; background: #2A1F2B; z-index: 0; }
+.card-3d-front { position: relative; transform: translateY(-6px); z-index: 1; }
+</style>

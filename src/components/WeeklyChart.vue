@@ -1,6 +1,6 @@
 <template>
-  <div class="h-32">
-    <canvas ref="chartCanvas"></canvas>
+  <div class="w-full h-40 overflow-hidden">
+    <canvas ref="chartCanvas" class="w-full h-full"></canvas>
   </div>
 </template>
 
@@ -16,7 +16,7 @@ import {
   Legend
 } from 'chart.js';
 
-// Register Chart.js components
+
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -42,7 +42,7 @@ let chartInstance: ChartJS | null = null;
 const createChart = () => {
   if (!chartCanvas.value) return;
 
-  // Destroy existing chart
+  
   if (chartInstance) {
     chartInstance.destroy();
   }
@@ -50,23 +50,23 @@ const createChart = () => {
   const ctx = chartCanvas.value.getContext('2d');
   if (!ctx) return;
 
-  // Prepare data for Chart.js
+  
   const labels = props.data.map(day => day.day_name);
   const chartData = props.data.map(day => day.hours);
   
-  // Calculate colors for each bar
-  const maxHours = Math.max(...chartData, 1);
+  
+  const maxHours = Math.max(...chartData, 0);
+  const minHours = Math.min(...chartData, 0);
+  
+  const mostColor = { r: 232, g: 131, b: 174 };   
+  const leastColor = { r: 233, g: 150, b: 130 };  
+
   const colors = chartData.map(hours => {
-    if (hours === 0) return '#3d2b2e';
     
-    const intensity = hours / maxHours;
-    const startColor = { r: 237, g: 141, b: 75 };    // #ED8D4B (lighter)
-    const endColor = { r: 251, g: 75, b: 32 };       // #FB4B20 (darker)
-    
-    const r = Math.round(startColor.r + (endColor.r - startColor.r) * intensity);
-    const g = Math.round(startColor.g + (endColor.g - startColor.g) * intensity);
-    const b = Math.round(startColor.b + (endColor.b - startColor.b) * intensity);
-    
+    const t = maxHours === minHours ? 0.5 : (hours - minHours) / (Math.max(maxHours - minHours, 1e-6));
+    const r = Math.round(leastColor.r + (mostColor.r - leastColor.r) * t);
+    const g = Math.round(leastColor.g + (mostColor.g - leastColor.g) * t);
+    const b = Math.round(leastColor.b + (mostColor.b - leastColor.b) * t);
     return `rgb(${r}, ${g}, ${b})`;
   });
 
@@ -79,28 +79,38 @@ const createChart = () => {
         backgroundColor: colors,
         borderColor: colors,
         borderWidth: 0,
-        borderRadius: 4,
+        borderRadius: 6,
         borderSkipped: false,
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      resizeDelay: 0,
+      layout: {
+        padding: {
+          top: 10,
+          bottom: 28,
+          left: 10,
+          right: 10
+        }
+      },
       plugins: {
         legend: {
           display: false
         },
         tooltip: {
-          backgroundColor: '#191415',
+          backgroundColor: '#1F1617',
           titleColor: '#FFFFFF',
-          bodyColor: '#B0BAC4',
-          borderColor: '#FB4B20',
+          bodyColor: '#F5E6E8',
+          borderColor: '#2A1F2B',
           borderWidth: 1,
           cornerRadius: 8,
           displayColors: false,
+          padding: 10,
           callbacks: {
             label: function(context: any) {
-              return `${context.parsed.y}h`;
+              return `${context.parsed.y.toFixed(1)}h`;
             }
           }
         }
@@ -112,15 +122,39 @@ const createChart = () => {
             display: false
           },
           ticks: {
-            color: '#B0BAC4',
+            color: '#F5E6E8',
             font: {
-              size: 10,
-              family: 'Inter, system-ui, sans-serif'
-            }
+              size: 11,
+              family: 'Outfit, system-ui, sans-serif',
+              weight: 500
+            },
+            padding: 0
           }
         },
         y: {
-          display: false
+          display: true,
+          beginAtZero: true,
+          suggestedMin: 0,
+          grace: '10%',
+          grid: {
+            color: '#2A1F2B',
+            drawBorder: false,
+            display: false
+          },
+          border: {
+            display: false
+          },
+          ticks: {
+            color: '#F5E6E8',
+            font: {
+              size: 10,
+              family: 'Outfit, system-ui, sans-serif'
+            },
+            padding: 4,
+            callback: function(value: any) {
+              return value + 'h';
+            }
+          }
         }
       }
     }

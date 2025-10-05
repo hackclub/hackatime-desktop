@@ -6,6 +6,7 @@ use std::env;
 use std::fs;
 use std::path::Path;
 use uuid::Uuid;
+use crate::push_log;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AuthState {
@@ -20,7 +21,7 @@ pub struct SessionRecord {
     pub id: String,
     pub is_authenticated: bool,
     pub access_token: Option<String>,
-    pub user_info: Option<String>, // JSON string
+    pub user_info: Option<String>, 
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub last_accessed_at: DateTime<Utc>,
@@ -34,16 +35,16 @@ impl Database {
     pub async fn new() -> Result<Self, String> {
         let db_path = get_hackatime_db_path()?;
 
-        // Ensure the hackatime directory exists
+        
         if let Some(parent) = db_path.parent() {
             if !parent.exists() {
                 fs::create_dir_all(parent)
                     .map_err(|e| format!("Failed to create hackatime directory: {}", e))?;
-                println!("Created directory: {}", parent.display());
+                push_log("info", "backend", format!("Created directory: {}", parent.display()));
             }
         }
 
-        // Ensure the parent directory exists and is writable
+        
         if let Some(parent) = db_path.parent() {
             if !parent.exists() {
                 return Err(format!(
@@ -52,7 +53,7 @@ impl Database {
                 ));
             }
 
-            // Test if we can write to the directory
+            
             let test_file = parent.join(".write_test");
             if let Err(e) = fs::write(&test_file, "test") {
                 return Err(format!(
@@ -61,19 +62,19 @@ impl Database {
                     e
                 ));
             }
-            // Clean up test file
+            
             let _ = fs::remove_file(&test_file);
 
-            println!("Directory is writable: {}", parent.display());
+            push_log("debug", "backend", format!("Directory is writable: {}", parent.display()));
         }
 
-        // Create the database file if it doesn't exist
+        
         if !db_path.exists() {
-            println!(
+            push_log("info", "backend", format!(
                 "Database file doesn't exist, creating: {}",
                 db_path.display()
-            );
-            // Touch the file to ensure it exists
+            ));
+            
             if let Err(e) = fs::write(&db_path, "") {
                 return Err(format!(
                     "Cannot create database file {}: {}",
@@ -82,26 +83,26 @@ impl Database {
                 ));
             }
         } else {
-            println!("Database file already exists: {}", db_path.display());
+            push_log("debug", "backend", format!("Database file already exists: {}", db_path.display()));
         }
 
-        // Check file permissions
+        
         if let Ok(metadata) = fs::metadata(&db_path) {
-            println!("Database file metadata: {:?}", metadata);
+            push_log("debug", "backend", format!("Database file metadata: {:?}", metadata));
         }
 
-        // Try using SqlitePool::connect_with instead of connect
+        
         let database_url = format!("sqlite:{}", db_path.display());
-        println!("Connecting to database at: {}", database_url);
+        push_log("info", "backend", format!("Connecting to database at: {}", database_url));
 
-        // First try the standard connect method
+        
         let pool_result = SqlitePool::connect(&database_url).await;
 
         let pool = match pool_result {
             Ok(pool) => pool,
             Err(e) => {
-                println!("Standard connect failed: {}, trying connect_with", e);
-                // Try with explicit options
+                push_log("warn", "backend", format!("Standard connect failed: {}, trying connect_with", e));
+                
                 let options = sqlx::sqlite::SqliteConnectOptions::new()
                     .filename(&db_path)
                     .create_if_missing(true);
@@ -119,7 +120,7 @@ impl Database {
         let db = Database { pool };
         db.migrate().await?;
 
-        println!("Database initialized successfully");
+        push_log("info", "backend", "Database initialized successfully".to_string());
         Ok(db)
     }
 
@@ -140,6 +141,20 @@ impl Database {
         .execute(&self.pool)
         .await
         .map_err(|e| format!("Failed to create sessions table: {}", e))?;
+
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS statistics_cache (
+                cache_key TEXT PRIMARY KEY,
+                data TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| format!("Failed to create statistics_cache table: {}", e))?;
 
         Ok(())
     }
@@ -236,13 +251,13 @@ impl Database {
                     Some(json) => {
                         match serde_json::from_str::<HashMap<String, serde_json::Value>>(&json) {
                             Ok(info) => Some(info),
-                            Err(_) => None, // Skip invalid JSON
+                            Err(_) => None, 
                         }
                     }
                     None => None,
                 };
 
-                // Update last_accessed_at
+                
                 self.update_last_accessed(&session_id).await?;
 
                 Ok(Some(AuthState {
@@ -288,35 +303,114 @@ impl Database {
 
         Ok(())
     }
+
+    pub async fn get_cached_data(&self, cache_key: &str) -> Result<Option<String>, String> {
+        let now = Utc::now();
+
+        let row = sqlx::query(
+            r#"
+            SELECT data, expires_at 
+            FROM statistics_cache 
+            WHERE cache_key = ?
+            "#,
+        )
+        .bind(cache_key)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| format!("Failed to fetch cached data: {}", e))?;
+
+        match row {
+            Some(row) => {
+                let expires_at: String = row.get("expires_at");
+                let expires_at_dt = DateTime::parse_from_rfc3339(&expires_at)
+                    .map_err(|e| format!("Failed to parse expiration date: {}", e))?;
+
+                if expires_at_dt > now {
+                    let data: String = row.get("data");
+                    Ok(Some(data))
+                } else {
+                    sqlx::query("DELETE FROM statistics_cache WHERE cache_key = ?")
+                        .bind(cache_key)
+                        .execute(&self.pool)
+                        .await
+                        .ok();
+                    Ok(None)
+                }
+            }
+            None => Ok(None),
+        }
+    }
+
+    pub async fn set_cached_data(&self, cache_key: &str, data: &str, ttl_days: i64) -> Result<(), String> {
+        let now = Utc::now();
+        let expires_at = now + chrono::Duration::days(ttl_days);
+
+        sqlx::query(
+            r#"
+            INSERT OR REPLACE INTO statistics_cache (cache_key, data, created_at, expires_at)
+            VALUES (?, ?, ?, ?)
+            "#,
+        )
+        .bind(cache_key)
+        .bind(data)
+        .bind(now.to_rfc3339())
+        .bind(expires_at.to_rfc3339())
+        .execute(&self.pool)
+        .await
+        .map_err(|e| format!("Failed to cache data: {}", e))?;
+
+        Ok(())
+    }
+
+    pub async fn clear_all_cache(&self) -> Result<(), String> {
+        sqlx::query("DELETE FROM statistics_cache")
+            .execute(&self.pool)
+            .await
+            .map_err(|e| format!("Failed to clear cache: {}", e))?;
+
+        Ok(())
+    }
+
+    pub async fn cleanup_expired_cache(&self) -> Result<(), String> {
+        let now = Utc::now();
+
+        sqlx::query("DELETE FROM statistics_cache WHERE expires_at < ?")
+            .bind(now.to_rfc3339())
+            .execute(&self.pool)
+            .await
+            .map_err(|e| format!("Failed to cleanup expired cache: {}", e))?;
+
+        Ok(())
+    }
 }
 
 fn get_hackatime_db_path() -> Result<std::path::PathBuf, String> {
     let app_data_dir = get_app_data_dir()?;
     let db_path = app_data_dir.join("sessions.db");
 
-    println!("Database path: {}", db_path.display());
-    println!(
+    push_log("debug", "backend", format!("Database path: {}", db_path.display()));
+    push_log("debug", "backend", format!(
         "Parent directory exists: {}",
         db_path.parent().map_or(false, |p| p.exists())
-    );
+    ));
 
     Ok(db_path)
 }
 
 fn get_app_data_dir() -> Result<std::path::PathBuf, String> {
     if cfg!(target_os = "windows") {
-        // Windows: %APPDATA%\.hackatime\
+        
         let appdata = env::var("APPDATA").map_err(|_| "Failed to get APPDATA directory")?;
         Ok(Path::new(&appdata).join(".hackatime"))
     } else if cfg!(target_os = "macos") {
-        // macOS: ~/Library/Application Support/.hackatime/
+        
         let home = env::var("HOME").map_err(|_| "Failed to get HOME directory")?;
         Ok(Path::new(&home)
             .join("Library")
             .join("Application Support")
             .join(".hackatime"))
     } else {
-        // Linux: ~/.local/share/.hackatime/
+        
         let home = env::var("HOME").map_err(|_| "Failed to get HOME directory")?;
         Ok(Path::new(&home)
             .join(".local")
@@ -328,7 +422,7 @@ fn get_app_data_dir() -> Result<std::path::PathBuf, String> {
 pub fn get_hackatime_config_dir() -> Result<std::path::PathBuf, String> {
     let app_data_dir = get_app_data_dir()?;
 
-    // Create the directory if it doesn't exist
+    
     if !app_data_dir.exists() {
         fs::create_dir_all(&app_data_dir)
             .map_err(|e| format!("Failed to create hackatime directory: {}", e))?;
@@ -341,7 +435,7 @@ pub fn get_hackatime_logs_dir() -> Result<std::path::PathBuf, String> {
     let config_dir = get_hackatime_config_dir()?;
     let logs_dir = config_dir.join("logs");
 
-    // Create the logs directory if it doesn't exist
+    
     if !logs_dir.exists() {
         fs::create_dir_all(&logs_dir)
             .map_err(|e| format!("Failed to create logs directory: {}", e))?;
@@ -354,7 +448,7 @@ pub fn get_hackatime_data_dir() -> Result<std::path::PathBuf, String> {
     let config_dir = get_hackatime_config_dir()?;
     let data_dir = config_dir.join("data");
 
-    // Create the data directory if it doesn't exist
+    
     if !data_dir.exists() {
         fs::create_dir_all(&data_dir)
             .map_err(|e| format!("Failed to create data directory: {}", e))?;
@@ -363,6 +457,7 @@ pub fn get_hackatime_data_dir() -> Result<std::path::PathBuf, String> {
     Ok(data_dir)
 }
 
+#[tauri::command]
 pub fn get_platform_info() -> Result<serde_json::Value, String> {
     let app_data_dir = get_app_data_dir()?;
 
