@@ -47,17 +47,16 @@ jobs:
           DEFAULT_BRANCH: main
           VALIDATE_ALL_CODEBASE: true
           ENABLE: RUST,JAVASCRIPT,TYPESCRIPT,JSON,YAML,MARKDOWN,REPOSITORY
-          ENABLE_LINTERS: VUE_ESLINT_PLUGIN_VUE,REPOSITORY_GIT_DIFF,REPOSITORY_SECRETLINT,REPOSITORY_TRIVY_SBOM,REPOSITORY_TRUFFLEHOG,YAML_PRETTIER,YAML_YAMLLINT
+          ENABLE_LINTERS: RUST_CLIPPY,RUST_RUSTFMT,VUE_ESLINT_PLUGIN_VUE,REPOSITORY_GIT_DIFF,REPOSITORY_SECRETLINT,REPOSITORY_TRIVY_SBOM,REPOSITORY_TRUFFLEHOG,YAML_PRETTIER,YAML_YAMLLINT
           DISABLE: COPYPASTE,SPELL
+          DISABLE_LINTERS: REPOSITORY_CHECKOV,REPOSITORY_GITLEAKS
           SECURITY_LINTERS_ENABLED: true
           
-          # Set Rust working directory
-          RUST_DIRECTORY: src-tauri
-          
-          # Rust linter arguments
-          RUST_CLIPPY_ARGUMENTS: --manifest-path src-tauri/Cargo.toml
-          RUST_RUSTFMT_ARGUMENTS: --manifest-path src-tauri/Cargo.toml --edition 2024
-          
+          # Rust linter configuration
+          RUST_PRE_COMMANDS: "[{\"cwd\": \"workspace\", \"command\": \"apk add --no-cache pkgconfig gtk+3.0-dev webkit2gtk-4.1-dev openssl-dev\"}]"
+          RUST_CLIPPY_ARGUMENTS: -- --manifest-path src-tauri/Cargo.toml
+          RUST_RUSTFMT_ARGUMENTS: --edition 2024
+                    
           # Other linter arguments
           REPOSITORY_TRIVY_ARGUMENTS: --scanners vuln,misconfig --severity HIGH,CRITICAL --exit-code 1
           JSON_PRETTIER_FILTER_REGEX_EXCLUDE: ".release-please-manifest.json"
@@ -65,7 +64,7 @@ jobs:
           
           # File filtering
           FILTER_REGEX_INCLUDE: (src-tauri/.*\.rs|src/.*\.(js|ts|tsx|jsx|json|yaml|yml|toml|md))
-          FILTER_REGEX_EXCLUDE: (target/|node_modules/|dist/|build/)
+          FILTER_REGEX_EXCLUDE: (target/|src-tauri/target/|node_modules/|dist/|build/)
           
           # Apply fixes configuration
           APPLY_FIXES: all
