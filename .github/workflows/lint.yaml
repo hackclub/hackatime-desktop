@@ -54,8 +54,9 @@ jobs:
           ENABLE_LINTERS: VUE_ESLINT_PLUGIN_VUE,REPOSITORY_GIT_DIFF,REPOSITORY_SECRETLINT,REPOSITORY_TRIVY_SBOM,REPOSITORY_TRUFFLEHOG,YAML_PRETTIER,YAML_YAMLLINT
           DISABLE: COPYPASTE,SPELL
           SECURITY_LINTERS_ENABLED: true
-          RUST_CLIPPY_ARGUMENTS: -- -D warnings
+          RUST_CLIPPY_COMMAND: '["cargo", "clippy", "--", "-D", "warnings"]'
           RUST_RUSTFMT_ARGUMENTS: --edition 2024
+          REPOSITORY_TRIVY_ARGUMENTS: '["fs", "--scanners", "vuln,misconfig", "--severity", "HIGH,CRITICAL", "--exit-code", "1", "."]'
           JSON_PRETTIER_FILTER_REGEX_EXCLUDE: ".release-please-manifest.json"
           MARKDOWN_FILTER_REGEX_EXCLUDE: "CHANGELOG.md"
           FILTER_REGEX_INCLUDE: (src/.*\.(rs|js|ts|tsx|jsx|json|yaml|yml|toml|md))
