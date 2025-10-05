@@ -10,8 +10,7 @@ use tauri::{Manager, State, WindowEvent};
 use tauri_plugin_deep_link::DeepLinkExt;
 use sha2::{Sha256, Digest};
 use base64::{Engine as _, engine::general_purpose};
-use rand::{Rng, thread_rng};
-use rand::distributions::Alphanumeric;
+use rand::Rng;
 use chrono::Datelike;
 
 mod database;
@@ -51,8 +50,8 @@ impl ApiConfig {
 }
 
 fn generate_code_verifier() -> String {
-    let mut rng = thread_rng();
-    let bytes: Vec<u8> = (0..32).map(|_| rng.gen()).collect();
+    let mut rng = rand::rng();
+    let bytes: Vec<u8> = (0..32).map(|_| rng.random()).collect();
     general_purpose::URL_SAFE_NO_PAD.encode(&bytes)
 }
 
@@ -64,10 +63,13 @@ fn generate_code_challenge(verifier: &str) -> String {
 }
 
 fn generate_state() -> String {
-    let mut rng = thread_rng();
+    let mut rng = rand::rng();
     (0..32)
-        .map(|_| rng.sample(Alphanumeric))
-        .map(char::from)
+        .map(|_| {
+            const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+            let idx = (rng.random::<u8>() as usize) % CHARSET.len();
+            CHARSET[idx] as char
+        })
         .collect()
 }
 
