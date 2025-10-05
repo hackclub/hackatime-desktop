@@ -15,7 +15,7 @@ permissions:
 jobs:
   lint:
     name: LINTEEER
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     if: github.event.action != 'closed'
     env:
       APPLY_FIXES: all
@@ -39,6 +39,7 @@ jobs:
           token: ${{ steps.generate-token.outputs.token }}
           fetch-depth: 0
           ref: ${{ github.head_ref || github.ref }}
+          lfs: true
       
       - name: Run MegaLinter
         uses: oxsecurity/megalinter/flavors/rust@v8.8.0
