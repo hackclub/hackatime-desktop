@@ -4,9 +4,7 @@ name: leafdlint
 on:
   pull_request:
     branches: [main, develop]
-  push:
-    branches: [main, develop]
-
+    
 permissions:
   contents: write
   pull-requests: write
