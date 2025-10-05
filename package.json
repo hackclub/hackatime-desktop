@@ -1,7 +1,7 @@
 {
   "name": "desktop",
   "private": true,
-  "version": "1.1.9",
+  "version": "1.1.10",
   "type": "module",
   "packageManager": "pnpm@9.15.9",
   "scripts": {

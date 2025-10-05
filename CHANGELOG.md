@@ -1,5 +1,30 @@
 # Changelog
 
+## [1.1.10](https://github.com/hackclub/hackatime-desktop/compare/app-v1.1.9...app-v1.1.10) (2025-10-05)
+
+
+### 🐛 Bugfixes
+
+* update compatibility for rand 0.9 ([d6d5f87](https://github.com/hackclub/hackatime-desktop/commit/d6d5f8714b13185850c93d4363d311e6259e7a06))
+
+
+### 👽 Miscellaneous
+
+* **ci:** add linters ([#22](https://github.com/hackclub/hackatime-desktop/issues/22)) ([1e52ddc](https://github.com/hackclub/hackatime-desktop/commit/1e52ddc88c9553699d5b0e06dc848f35a0946356))
+* **ci:** disable linter on push ([bf05fb2](https://github.com/hackclub/hackatime-desktop/commit/bf05fb26ccccb393461c1302e276c0852954f01c))
+* **ci:** disable run linter on leafdbot pr ([00be830](https://github.com/hackclub/hackatime-desktop/commit/00be8303735d6d1084ab630a47d4f8cfc6abdb89))
+* **ci:** remove binaries upload to release ([a2b1e2d](https://github.com/hackclub/hackatime-desktop/commit/a2b1e2de9a0e79437fd5dc80c4ad11dac346d223))
+* **deps:** update actions/checkout action to v5 ([#32](https://github.com/hackclub/hackatime-desktop/issues/32)) ([44d7491](https://github.com/hackclub/hackatime-desktop/commit/44d7491fe6e2f9b5e8874a9ee88012bc1ad7874e))
+* **deps:** update actions/create-github-app-token action to v2 ([#33](https://github.com/hackclub/hackatime-desktop/issues/33)) ([a77e2c5](https://github.com/hackclub/hackatime-desktop/commit/a77e2c550259f88436955a46685b4f32cdfe3a38))
+* **deps:** update actions/download-artifact action to v5 ([#34](https://github.com/hackclub/hackatime-desktop/issues/34)) ([65dc51c](https://github.com/hackclub/hackatime-desktop/commit/65dc51cefa8d37ffceae2d9dfb88a30962e40146))
+* **deps:** update actions/setup-node action to v5 ([#35](https://github.com/hackclub/hackatime-desktop/issues/35)) ([8cb7c1e](https://github.com/hackclub/hackatime-desktop/commit/8cb7c1e99e3abdd27181cb77265995ad6cf417fb))
+* **deps:** update dependency typescript to ~5.9.0 ([#29](https://github.com/hackclub/hackatime-desktop/issues/29)) ([0ff37a7](https://github.com/hackclub/hackatime-desktop/commit/0ff37a7dee0b274c013bc315399a9bd7ff8d21d0))
+* **deps:** update pnpm to v9.15.9 ([#27](https://github.com/hackclub/hackatime-desktop/issues/27)) ([e1e8f00](https://github.com/hackclub/hackatime-desktop/commit/e1e8f00778ac10851e7a8147513d2a51269070e8))
+* **deps:** update renovatebot/github-action action to v41.0.22 ([#28](https://github.com/hackclub/hackatime-desktop/issues/28)) ([e8309c3](https://github.com/hackclub/hackatime-desktop/commit/e8309c345ff85d3d5e303f4ebd9e8a5ceb1f5bc7))
+* **deps:** update rust crate rand to 0.9 ([#24](https://github.com/hackclub/hackatime-desktop/issues/24)) ([c51288a](https://github.com/hackclub/hackatime-desktop/commit/c51288a57dfb62aabca91e8f9ab096a40992dd2f))
+* **deps:** update rust crate reqwest to 0.12 ([#30](https://github.com/hackclub/hackatime-desktop/issues/30)) ([5380995](https://github.com/hackclub/hackatime-desktop/commit/5380995b08691c1a3d76965c55f7742508ff2740))
+* **deps:** update rust crate reqwest to 0.12 ([#31](https://github.com/hackclub/hackatime-desktop/issues/31)) ([d449e14](https://github.com/hackclub/hackatime-desktop/commit/d449e147f7444c7b0a3039a22254d7888b78ff27))
+
 ## [1.1.9](https://github.com/hackclub/hackatime-desktop/compare/app-v1.1.8...app-v1.1.9) (2025-10-04)
 
 
