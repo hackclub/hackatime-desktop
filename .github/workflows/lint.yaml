@@ -1,0 +1,104 @@
+name: MegaLinter
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  lint:
+    name: Lint Tauri Application
+    runs-on: ubuntu-latest
+    if: github.event.action != 'closed'
+    env:
+      APPLY_FIXES: all
+      APPLY_FIXES_EVENT: all
+      APPLY_FIXES_MODE: commit
+    outputs:
+      changes_detected: ${{ steps.autocommit.outputs.changes_detected }}
+      commit_hash: ${{ steps.autocommit.outputs.commit_hash }}
+    
+    steps:
+      - name: Generate GitHub App Token
+        uses: actions/create-github-app-token@v1
+        id: generate-token
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+          fetch-depth: 0
+          ref: ${{ github.head_ref || github.ref }}
+
+      - name: Run MegaLinter
+        uses: oxsecurity/megalinter@v8
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+          DEFAULT_BRANCH: main
+          VALIDATE_ALL_CODEBASE: true
+          ENABLE: RUST,JAVASCRIPT,TYPESCRIPT,JSON,YAML,MARKDOWN
+          ENABLE_LINTERS: VUE_ESLINT_PLUGIN_VUE
+          DISABLE: COPYPASTE,SPELL
+          SECURITY_LINTERS_ENABLED: true
+          RUST_CLIPPY_ARGUMENTS: -- -D warnings
+          RUST_RUSTFMT_ARGUMENTS: --edition 2024
+          JSON_PRETTIER_FILTER_REGEX_EXCLUDE: ".release-please-manifest.json"
+          MARKDOWN_FILTER_REGEX_EXCLUDE: "CHANGELOG.md"
+          FILTER_REGEX_INCLUDE: (src/.*\.(rs|js|ts|tsx|jsx|json|yaml|yml|toml|md))
+          FILTER_REGEX_EXCLUDE: (target/|node_modules/|dist/|build/)
+          APPLY_FIXES: all
+          APPLY_FIXES_EVENT: all
+          APPLY_FIXES_MODE: commit
+          FILEIO_REPORTER: false
+          FLAVOR_SUGGESTIONS: false
+          SHOW_ELAPSED_TIME: true
+          PRINT_ALPACA: false
+          PRINT_ALL_FILES: false
+
+      - name: Archive Linter Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: megalinter-reports
+          path: |
+            megalinter-reports/
+            mega-linter.log
+          retention-days: 30
+
+      - name: Add Reports to Gitignore
+        if: success() || failure()
+        run: |
+          touch .gitignore
+          grep -qxF 'megalinter-reports/' .gitignore || echo 'megalinter-reports/' >> .gitignore
+          grep -qxF 'mega-linter.log' .gitignore || echo 'mega-linter.log' >> .gitignore
+
+      - name: Prepare Git for Commit
+        if: success() || failure()
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          sudo chown -Rc $UID .git/ || true
+
+      - name: Commit and Push Linter Fixes
+        id: autocommit
+        if: success() || failure()
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          branch: ${{ github.head_ref || github.ref_name }}
+          commit_user_name: ${{ vars.BOT_NAME }}
+          commit_user_email: ${{ vars.BOT_EMAIL }}
+          commit_author: ${{ vars.BOT_NAME }} <${{ vars.BOT_EMAIL }}>
+          commit_message: "chore: apply linter fixes"
+          skip_dirty_check: false
+          skip_fetch: false
+          skip_checkout: false
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
