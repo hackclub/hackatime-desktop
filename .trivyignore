@@ -1,0 +1,6 @@
+# Trivy ignore file
+# Suppress known issues that cannot be easily fixed
+
+# More info on : https://github.com/tauri-apps/tauri/issues/12048
+GHSA-wrw7-89jp-8q8g
+

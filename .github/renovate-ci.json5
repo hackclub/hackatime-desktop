@@ -1,0 +1,23 @@
+{
+  "extends": [":enableRenovate", ":semanticCommits", ":enablePreCommit"],
+  "platform": "github",
+  "username": "leafdbot[bot]",
+  "repositories": ["hackclub/hackatime-desktop"],
+  "onboarding": false,
+  "requireConfig": "optional",
+  "gitAuthor": "leafdbot[bot] <192038741+leafdbot[bot]@users.noreply.github.com>",
+  "timezone": "UTC",
+  "dependencyDashboard": true,
+  "stabilityDays": 1,
+  "platformCommit": true,
+  "prCreation": "not-pending",
+  "commitBody": "Signed-off-by: leafdbot[bot] <192038741+leafdbot[bot]@users.noreply.github.com>",
+  "suppressNotifications": ["prIgnoreNotification"],
+  "rebaseWhen": "conflicted",
+  "git-submodules": {"enabled": true},
+  "packageRules": [
+    {"matchUpdateTypes": ["major"], "addLabels": ["dependency/major"]},
+    {"matchUpdateTypes": ["minor"], "addLabels": ["dependency/minor"]},
+    {"matchUpdateTypes": ["patch"], "addLabels": ["dependency/patch"]}
+  ]
+}

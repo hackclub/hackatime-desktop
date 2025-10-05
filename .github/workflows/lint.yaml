@@ -1,0 +1,119 @@
+---
+name: leafdlint
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  lint:
+    name: LINTEEER
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    if: github.event.action != 'closed'
+    env:
+      APPLY_FIXES: all
+      APPLY_FIXES_EVENT: all
+      APPLY_FIXES_MODE: commit
+    outputs:
+      changes_detected: ${{ steps.autocommit.outputs.changes_detected }}
+      commit_hash: ${{ steps.autocommit.outputs.commit_hash }}
+      
+    steps:
+      - name: Generate GitHub App Token
+        uses: actions/create-github-app-token@v1
+        id: generate-token
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+      
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+          fetch-depth: 0
+          ref: ${{ github.head_ref || github.ref }}
+          lfs: true
+      
+      - name: Run MegaLinter
+        uses: oxsecurity/megalinter/flavors/rust@v8.8.0
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+          DEFAULT_BRANCH: main
+          VALIDATE_ALL_CODEBASE: true
+          ENABLE: RUST,JAVASCRIPT,TYPESCRIPT,JSON,YAML,MARKDOWN,REPOSITORY
+          ENABLE_LINTERS: RUST_CLIPPY,RUST_RUSTFMT,VUE_ESLINT_PLUGIN_VUE,REPOSITORY_GIT_DIFF,REPOSITORY_SECRETLINT,REPOSITORY_TRIVY_SBOM,REPOSITORY_TRUFFLEHOG,YAML_PRETTIER,YAML_YAMLLINT
+          DISABLE: COPYPASTE,SPELL
+          DISABLE_LINTERS: REPOSITORY_CHECKOV,REPOSITORY_GITLEAKS
+          SECURITY_LINTERS_ENABLED: true
+          
+          # Rust linter configuration
+          RUST_PRE_COMMANDS: "[{\"cwd\": \"workspace\", \"command\": \"apk add --no-cache pkgconfig gtk+3.0-dev webkit2gtk-4.1-dev openssl-dev\"}]"
+          RUST_CLIPPY_ARGUMENTS: -- --manifest-path src-tauri/Cargo.toml
+          RUST_RUSTFMT_ARGUMENTS: --edition 2024
+                    
+          # Other linter arguments
+          REPOSITORY_TRIVY_ARGUMENTS: --scanners vuln,misconfig --severity HIGH,CRITICAL --exit-code 1
+          JSON_PRETTIER_FILTER_REGEX_EXCLUDE: ".release-please-manifest.json"
+          MARKDOWN_FILTER_REGEX_EXCLUDE: "CHANGELOG.md"
+          
+          # File filtering
+          FILTER_REGEX_INCLUDE: (src-tauri/.*\.rs|src/.*\.(js|ts|tsx|jsx|json|yaml|yml|toml|md))
+          FILTER_REGEX_EXCLUDE: (target/|src-tauri/target/|node_modules/|dist/|build/)
+          
+          # Apply fixes configuration
+          APPLY_FIXES: all
+          APPLY_FIXES_EVENT: all
+          APPLY_FIXES_MODE: commit
+          
+          # Reporter settings
+          FILEIO_REPORTER: false
+          FLAVOR_SUGGESTIONS: false
+          SHOW_ELAPSED_TIME: true
+          PRINT_ALPACA: false
+          PRINT_ALL_FILES: false
+      
+      - name: Archive Linter Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: megalinter-reports
+          path: |
+            megalinter-reports/
+            mega-linter.log
+          retention-days: 30
+      
+      - name: Add Reports to Gitignore
+        if: success() || failure()
+        run: |
+          touch .gitignore
+          grep -qxF 'megalinter-reports/' .gitignore || echo 'megalinter-reports/' >> .gitignore
+          grep -qxF 'mega-linter.log' .gitignore || echo 'mega-linter.log' >> .gitignore
+      
+      - name: Prepare Git for Commit
+        if: success() || failure()
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          sudo chown -Rc $UID .git/ || true
+      
+      - name: Commit and Push Linter Fixes
+        id: autocommit
+        if: success() || failure()
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          branch: ${{ github.head_ref || github.ref_name }}
+          commit_user_name: ${{ vars.BOT_NAME }}
+          commit_user_email: ${{ vars.BOT_EMAIL }}
+          commit_author: ${{ vars.BOT_NAME }} <${{ vars.BOT_EMAIL }}>
+          commit_message: "chore: apply linter fixes"
+          skip_dirty_check: false
+          skip_fetch: false
+          skip_checkout: false
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
