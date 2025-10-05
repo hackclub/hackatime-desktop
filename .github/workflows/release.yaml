@@ -216,7 +216,7 @@ jobs:
           version=$(jq -r '."."' .release-please-manifest.json)
           echo "version=$version" >> $GITHUB_OUTPUT
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: artifacts
       - name: Print directory structure
