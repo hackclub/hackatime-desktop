@@ -23,7 +23,7 @@ jobs:
     outputs:
       changes_detected: ${{ steps.autocommit.outputs.changes_detected }}
       commit_hash: ${{ steps.autocommit.outputs.commit_hash }}
-    
+      
     steps:
       - name: Generate GitHub App Token
         uses: actions/create-github-app-token@v1
@@ -31,19 +31,14 @@ jobs:
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
-
+      
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           token: ${{ steps.generate-token.outputs.token }}
           fetch-depth: 0
           ref: ${{ github.head_ref || github.ref }}
-
-      - name: Cache MegaLinter Docker image
-        uses: ScribeMD/docker-cache@0.5.0
-        with:
-          key: docker-${{ runner.os }}-megalinter-rust-v8.8.0
-
+      
       - name: Run MegaLinter
         uses: oxsecurity/megalinter/flavors/rust@v8.8.0
         env:
@@ -54,22 +49,35 @@ jobs:
           ENABLE_LINTERS: VUE_ESLINT_PLUGIN_VUE,REPOSITORY_GIT_DIFF,REPOSITORY_SECRETLINT,REPOSITORY_TRIVY_SBOM,REPOSITORY_TRUFFLEHOG,YAML_PRETTIER,YAML_YAMLLINT
           DISABLE: COPYPASTE,SPELL
           SECURITY_LINTERS_ENABLED: true
-          RUST_CLIPPY_DIRECTORY: src-tauri
-          RUST_RUSTFMT_ARGUMENTS: --edition 2024
+          
+          # Set Rust working directory
+          RUST_DIRECTORY: src-tauri
+          
+          # Rust linter arguments
+          RUST_CLIPPY_ARGUMENTS: --manifest-path src-tauri/Cargo.toml
+          RUST_RUSTFMT_ARGUMENTS: --manifest-path src-tauri/Cargo.toml --edition 2024
+          
+          # Other linter arguments
           REPOSITORY_TRIVY_ARGUMENTS: --scanners vuln,misconfig --severity HIGH,CRITICAL --exit-code 1
           JSON_PRETTIER_FILTER_REGEX_EXCLUDE: ".release-please-manifest.json"
           MARKDOWN_FILTER_REGEX_EXCLUDE: "CHANGELOG.md"
-          FILTER_REGEX_INCLUDE: (src/.*\.(rs|js|ts|tsx|jsx|json|yaml|yml|toml|md))
+          
+          # File filtering
+          FILTER_REGEX_INCLUDE: (src-tauri/.*\.rs|src/.*\.(js|ts|tsx|jsx|json|yaml|yml|toml|md))
           FILTER_REGEX_EXCLUDE: (target/|node_modules/|dist/|build/)
+          
+          # Apply fixes configuration
           APPLY_FIXES: all
           APPLY_FIXES_EVENT: all
           APPLY_FIXES_MODE: commit
+          
+          # Reporter settings
           FILEIO_REPORTER: false
           FLAVOR_SUGGESTIONS: false
           SHOW_ELAPSED_TIME: true
           PRINT_ALPACA: false
           PRINT_ALL_FILES: false
-
+      
       - name: Archive Linter Reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -79,20 +87,20 @@ jobs:
             megalinter-reports/
             mega-linter.log
           retention-days: 30
-
+      
       - name: Add Reports to Gitignore
         if: success() || failure()
         run: |
           touch .gitignore
           grep -qxF 'megalinter-reports/' .gitignore || echo 'megalinter-reports/' >> .gitignore
           grep -qxF 'mega-linter.log' .gitignore || echo 'mega-linter.log' >> .gitignore
-
+      
       - name: Prepare Git for Commit
         if: success() || failure()
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           sudo chown -Rc $UID .git/ || true
-
+      
       - name: Commit and Push Linter Fixes
         id: autocommit
         if: success() || failure()
