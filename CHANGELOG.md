@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.11](https://github.com/hackclub/hackatime-desktop/compare/app-v1.1.10...app-v1.1.11) (2025-10-05)
+
+
+### 👽 Miscellaneous
+
+* **ci:** install pnpm with action-setup ([f716398](https://github.com/hackclub/hackatime-desktop/commit/f71639892f62cf8db21655cf4b1849207e428d29))
+
 ## [1.1.10](https://github.com/hackclub/hackatime-desktop/compare/app-v1.1.9...app-v1.1.10) (2025-10-05)
 
 
