@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.1.12](https://github.com/hackclub/hackatime-desktop/compare/app-v1.1.11...app-v1.1.12) (2025-10-05)
+
+
+### 👽 Miscellaneous
+
+* **ci:** update pnpm version ([4bb8d6e](https://github.com/hackclub/hackatime-desktop/commit/4bb8d6e226e57afe3be6e833a488ff06fe09219d))
+* **deps:** update pnpm to v10 ([#37](https://github.com/hackclub/hackatime-desktop/issues/37)) ([8c452d8](https://github.com/hackclub/hackatime-desktop/commit/8c452d81b5730f664329b415cfea4a88892ac981))
+* **deps:** update pnpm to v10 ([#38](https://github.com/hackclub/hackatime-desktop/issues/38)) ([a591e9c](https://github.com/hackclub/hackatime-desktop/commit/a591e9c72cae6f927e12fa3d1744ada2641122ab))
+
 ## [1.1.11](https://github.com/hackclub/hackatime-desktop/compare/app-v1.1.10...app-v1.1.11) (2025-10-05)
 
 
