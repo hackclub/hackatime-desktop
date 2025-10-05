@@ -14,7 +14,7 @@ jobs:
   lint:
     name: LINTEEER
     runs-on: blacksmith-4vcpu-ubuntu-2404
-    if: github.event.action != 'closed'
+    if: github.event.action != 'closed' && github.event.pull_request.user.login != 'leafdbot[bot]'
     env:
       APPLY_FIXES: all
       APPLY_FIXES_EVENT: all
