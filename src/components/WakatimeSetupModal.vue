@@ -94,7 +94,7 @@ async function applyConfig() {
   isApplying.value = true;
   try {
     
-    const apiUrl = props.apiUrl || "https://hackatime.hackclub.com";
+    const apiUrl = props.apiUrl || "https://hackatime.hackclub.com/api/hackatime/v1";
     await invoke('apply_wakatime_config', {
       apiKey: props.apiKey,
       apiUrl: apiUrl,

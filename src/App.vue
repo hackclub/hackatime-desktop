@@ -208,7 +208,7 @@ async function checkWakatimeConfig(forceShowModal = false) {
     return;
   }
   
-  const apiUrl = apiConfig.value.base_url || "https://hackatime.hackclub.com";
+  const apiUrl = apiConfig.value.base_url ? `${apiConfig.value.base_url}/api/hackatime/v1` : "https://hackatime.hackclub.com/api/hackatime/v1";
   if (!apiUrl || apiUrl.trim() === "") {
     console.warn("API URL is not set, skipping wakatime config check");
     return;
@@ -594,7 +594,7 @@ async function handleDirectOAuthAuth() {
     <WakatimeSetupModal
       v-if="showWakatimeSetupModal && wakatimeConfigCheck && apiKey"
       :api-key="apiKey"
-      :api-url="apiConfig.base_url || 'https://hackatime.hackclub.com'"
+      :api-url="apiConfig.base_url ? `${apiConfig.base_url}/api/hackatime/v1` : 'https://hackatime.hackclub.com/api/hackatime/v1'"
       :config-check="wakatimeConfigCheck"
       @close="showWakatimeSetupModal = false"
       @applied="handleWakatimeConfigApplied"
