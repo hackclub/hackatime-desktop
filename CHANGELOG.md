@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.2](https://github.com/hackclub/hackatime-desktop/compare/app-v1.2.1...app-v1.2.2) (2025-10-07)
+
+
+### 👽 Miscellaneous
+
+* **ci:** use default runners for renovate ([538e31c](https://github.com/hackclub/hackatime-desktop/commit/538e31cffaf181a1f7b00b7ea3e5377f276fd85c))
+
 ## [1.2.1](https://github.com/hackclub/hackatime-desktop/compare/app-v1.2.0...app-v1.2.1) (2025-10-07)
 
 
