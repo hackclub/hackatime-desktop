@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.5](https://github.com/hackclub/hackatime-desktop/compare/app-v1.2.4...app-v1.2.5) (2025-10-07)
+
+
+### 🐛 Bugfixes
+
+* change api url for wakatime config ([2e8ac1f](https://github.com/hackclub/hackatime-desktop/commit/2e8ac1f4dd2565bfb9d8bbf3a1876a99d26207a6))
+
 ## [1.2.4](https://github.com/hackclub/hackatime-desktop/compare/app-v1.2.3...app-v1.2.4) (2025-10-07)
 
 
