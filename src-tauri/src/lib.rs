@@ -161,12 +161,13 @@ pub fn run() {
                         let ns_window = window.ns_window().unwrap() as id;
                         unsafe {
                             use objc::{msg_send, sel, sel_impl};
+                            use objc::runtime::NO;
                             
                             
                         let bg_color = NSColor::clearColor(nil);
                         ns_window.setBackgroundColor_(bg_color);
                         
-                        ns_window.setOpaque_(0);
+                        ns_window.setOpaque_(NO);
                             
                             let content_view: id = msg_send![ns_window, contentView];
                             let _: () = msg_send![content_view, setWantsLayer: true];
