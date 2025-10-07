@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.4](https://github.com/hackclub/hackatime-desktop/compare/app-v1.2.3...app-v1.2.4) (2025-10-07)
+
+
+### 🐛 Bugfixes
+
+* fix objective c bool ([0196715](https://github.com/hackclub/hackatime-desktop/commit/019671560766bd86328a43327b55f88a5af172a8))
+
 ## [1.2.3](https://github.com/hackclub/hackatime-desktop/compare/app-v1.2.2...app-v1.2.3) (2025-10-07)
 
 
