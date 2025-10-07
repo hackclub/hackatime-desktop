@@ -4,12 +4,11 @@ export default {
     "./index.html",
     "./src/**/*.{vue,js,ts,jsx,tsx}",
   ],
-  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        // Dark theme colors
-        'dark': {
+        
+        'theme': {
           'sidebar-bg': '#2a1f21',
           'sidebar-text': '#f5e6e8',
           'sidebar-unread-text': '#ffffff',
@@ -34,33 +33,7 @@ export default {
           'mention-highlight-bg': '#4a2d31',
           'mention-highlight-link': '#ff9aaa',
         },
-        // Light theme colors
-        'light': {
-          'sidebar-bg': '#fdf7f8',
-          'sidebar-text': '#5d3a3f',
-          'sidebar-unread-text': '#2c1a1d',
-          'sidebar-text-hover-bg': '#f8e8ea',
-          'sidebar-text-active-border': '#c8394f',
-          'sidebar-text-active-color': '#8b2635',
-          'sidebar-header-bg': '#ffffff',
-          'sidebar-header-text': '#5d3a3f',
-          'sidebar-team-bar-bg': '#ffffff',
-          'online-indicator': '#33d6a6',
-          'away-indicator': '#ff8c37',
-          'dnd-indicator': '#ec3750',
-          'mention-bg': '#c8394f',
-          'mention-color': '#ffffff',
-          'center-channel-bg': '#ffffff',
-          'center-channel-color': '#5d3a3f',
-          'new-message-separator': '#ff7a8a',
-          'link-color': '#a12d3e',
-          'button-bg': '#c8394f',
-          'button-color': '#ffffff',
-          'error-text': '#d63c56',
-          'mention-highlight-bg': '#fce4e6',
-          'mention-highlight-link': '#a12d3e',
-        },
-        // Semantic color mappings
+        
         'bg-primary': 'var(--bg-primary)',
         'bg-secondary': 'var(--bg-secondary)',
         'bg-tertiary': 'var(--bg-tertiary)',

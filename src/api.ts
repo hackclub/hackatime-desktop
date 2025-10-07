@@ -148,7 +148,7 @@ export class KubeTimeApi {
     }
 
     try {
-      // Return cached result if fetched within last 60s
+      
       const now = Date.now()
       if (now - this.latestPresenceCache.fetchedAt < 60_000 && this.latestPresenceCache.data !== null) {
         return this.latestPresenceCache.data

@@ -1,11 +1,12 @@
 <template>
-  <div class="bg-bg-card border border-border-primary rounded-2xl p-6 shadow-card">
+  <div class="card-3d">
+    <div class="rounded-[8px] border-2 border-black p-6 card-3d-front h-full flex flex-col" style="background-color: #3D2C3E;">
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold text-text-primary">{{ title }}</h3>
       <div class="text-2xl">{{ icon }}</div>
     </div>
     
-    <div class="space-y-4">
+    <div class="space-y-4 flex-1">
       <div class="flex items-center justify-between">
         <div>
           <div class="text-3xl font-bold text-text-primary">{{ value }}</div>
@@ -20,6 +21,7 @@
           </div>
         </div>
       </div>
+    </div>
     </div>
   </div>
 </template>
@@ -42,12 +44,18 @@ const props = defineProps<Props>();
 const changeClass = computed(() => {
   switch (props.changeType) {
     case 'increase':
-      return 'bg-green-100 text-green-800';
+      return 'bg-[rgba(34,197,94,0.15)] text-[#22c55e]';
     case 'decrease':
-      return 'bg-red-100 text-red-800';
+      return 'bg-[rgba(236,59,72,0.15)] text-[#ec3b48]';
     case 'neutral':
     default:
-      return 'bg-gray-100 text-gray-800';
+      return 'bg-[rgba(255,255,255,0.08)] text-[#f5e6e8]';
   }
 });
 </script>
+
+<style scoped>
+.card-3d { position: relative; border-radius: 8px; padding: 0; }
+.card-3d::before { content: ''; position: absolute; inset: 0; border-radius: 8px; background: #2A1F2B; z-index: 0; }
+.card-3d-front { position: relative; transform: translateY(-6px); z-index: 1; }
+</style>

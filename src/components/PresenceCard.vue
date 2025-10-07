@@ -114,7 +114,7 @@ const sessionState = ref<SessionState>({
 const isLoading = ref(true);
 let sessionRefreshInterval: number | null = null;
 
-// Format timestamp to relative time
+
 function formatTime(timestamp: number | null): string {
   if (!timestamp) return 'Unknown';
   
@@ -142,7 +142,7 @@ async function loadSessionState() {
   }
   
   try {
-    // Get the current session state
+    
     const session = await invoke("get_current_session");
     console.log("Session state loaded:", session);
     sessionState.value = session as SessionState;
@@ -158,7 +158,7 @@ function startSessionRefresh() {
     clearInterval(sessionRefreshInterval);
   }
   
-  // Refresh session state every 10 seconds
+  
   sessionRefreshInterval = setInterval(loadSessionState, 10000);
 }
 
@@ -169,7 +169,7 @@ function stopSessionRefresh() {
   }
 }
 
-// Watch for changes in presence data to update session state
+
 watch(() => props.presenceData, () => {
   if (props.authState.is_authenticated) {
     loadSessionState();

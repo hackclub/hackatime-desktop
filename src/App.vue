@@ -3,14 +3,13 @@ import { ref, onMounted, onUnmounted, computed } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrent, onOpenUrl } from "@tauri-apps/plugin-deep-link";
 import { api } from "./api";
-import { useTheme } from "./composables/useTheme";
 import Home from "./views/Home.vue";
 import Projects from "./views/Projects.vue";
 import Settings from "./views/Settings.vue";
 import Statistics from "./views/Statistics.vue";
-import PresenceCard from "./components/PresenceCard.vue";
-import TrendCard from "./components/TrendCard.vue";
-import WeeklyChart from "./components/WeeklyChart.vue";
+import UserProfileCard from "./components/UserProfileCard.vue";
+import CustomTitlebar from "./components/CustomTitlebar.vue";
+import WakatimeSetupModal from "./components/WakatimeSetupModal.vue";
 
 interface AuthState {
   is_authenticated: boolean;
@@ -48,13 +47,13 @@ const presenceFetchInProgress = ref(false);
 const nextPresenceFetchAllowedAt = ref<number>(0);
 const lastPresenceFetchAt = ref<number>(0);
 
-// Navigation state
 const currentPage = ref<'home' | 'projects' | 'statistics' | 'settings'>('home');
 
-// Theme management
-const { currentTheme, toggleTheme } = useTheme();
+const showWakatimeSetupModal = ref(false);
+const wakatimeConfigCheck = ref<any>(null);
+const hasCheckedConfigThisSession = ref(false);
 
-// Computed property for weekly chart data
+
 const weeklyChartData = computed(() => {
   if (!userStats.value?.weekly_stats?.daily_hours) {
     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -74,7 +73,6 @@ const weeklyChartData = computed(() => {
   const dailyHours = userStats.value.weekly_stats.daily_hours;
   const maxHours = Math.max(...Object.values(dailyHours).map((day: any) => day.hours), 1);
   
-  // Convert object to array and sort by date
   return Object.values(dailyHours)
     .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .map((day: any) => ({
@@ -83,87 +81,58 @@ const weeklyChartData = computed(() => {
     }));
 });
 
-// Computed property for trend data
-        const weeklyTrend = computed(() => {
-          if (!userStats.value?.weekly_stats) return null;
-          
-          const currentWeekHours = (userStats.value.weekly_stats.time_coded_seconds || 0) / 3600;
-          const lastWeekHours = currentWeekHours * 0.85; // Simulate 15% increase
-          const change = ((currentWeekHours - lastWeekHours) / lastWeekHours * 100);
-          
-          return {
-            title: change > 0 ? "You coded more than last week" : change < 0 ? "You coded less than last week" : "Same as last week",
-            change: change > 0 ? `+${Math.round(change)}%` : `${Math.round(change)}%`,
-            changeType: change > 0 ? 'increase' : change < 0 ? 'decrease' : 'neutral',
-            period: "vs last week",
-            icon: change > 0 ? "📈" : change < 0 ? "📉" : "➡️"
-          };
-        });
-
 
 onMounted(async () => {
   await loadAuthState();
   await loadApiConfig();
   await loadHackatimeInfo();
   
-  // Detect if we're in development mode
-  // Check if we're running on localhost (development) or have debug features
   isDevMode.value = apiConfig.value.base_url.includes('localhost') || 
                     apiConfig.value.base_url.includes('127.0.0.1') ||
                     window.location.hostname === 'localhost' ||
                     window.location.hostname === '127.0.0.1';
   
-  // Check if app was started via deep link
   try {
     const startUrls = await getCurrent();
     if (startUrls && startUrls.length > 0) {
       console.log("App started with deep link:", startUrls);
-      // Check if it's an OAuth callback
       const hasOAuthCallback = startUrls.some(url => 
         url.startsWith('hackatime://auth/callback')
       );
       
       if (hasOAuthCallback) {
         console.log("OAuth callback detected, refreshing auth state...");
-        // The Rust backend will handle the deep link processing
-        // We just need to refresh the auth state after processing
         setTimeout(async () => {
           await loadAuthState();
-        }, 1000); // Give the backend time to process the deep link
+        }, 1000);
       }
     }
   } catch (error) {
     console.error("Failed to get current deep link:", error);
   }
   
-  // Listen for deep link events when app is already running
   try {
     await onOpenUrl((urls) => {
       console.log("Deep link received in frontend:", urls);
-      // Check if it's an OAuth callback
       const hasOAuthCallback = urls.some(url => 
         url.startsWith('hackatime://auth/callback')
       );
       
       if (hasOAuthCallback) {
         console.log("OAuth callback detected, refreshing auth state...");
-        // The Rust backend handles the actual processing
-        // We just need to refresh the auth state
         setTimeout(async () => {
           await loadAuthState();
-        }, 1000); // Give the backend time to process the deep link
+        }, 1000);
       }
     });
   } catch (error) {
     console.error("Failed to set up deep link listener:", error);
   }
   
-  // Listen for window focus events to refresh auth state after popup closes
   window.addEventListener('focus', async () => {
     await loadAuthState();
   });
   
-  // Also listen for visibility change (when tab becomes active)
   document.addEventListener('visibilitychange', async () => {
     if (!document.hidden) {
       await loadAuthState();
@@ -171,7 +140,6 @@ onMounted(async () => {
   });
 });
 
-// Cleanup on unmount
 onUnmounted(() => {
   stopPresenceRefresh();
 });
@@ -188,12 +156,10 @@ async function loadAuthState() {
       
       await loadUserData();
     } else {
-      // No saved state or not authenticated, get current state
       console.log("No saved auth state found, getting current state");
       authState.value = await invoke("get_auth_state");
       console.log("Current auth state:", authState.value);
       
-      // If we have an authenticated state, save it to disk
       if (authState.value.is_authenticated) {
         try {
           await invoke("save_auth_state", { authState: authState.value });
@@ -205,7 +171,6 @@ async function loadAuthState() {
     }
   } catch (error) {
     console.error("Failed to load auth state:", error);
-    // Fallback to current state on error
     try {
       authState.value = await invoke("get_auth_state");
     } catch (fallbackError) {
@@ -219,21 +184,66 @@ async function loadUserData() {
     await api.initialize();
     userData.value = await api.getCurrentUser();
     
-    // Load user dashboard stats (getStats now returns dashboard stats)
     try {
-      userStats.value = await api.getStats();
+      userStats.value = await invoke("get_dashboard_stats", { apiConfig: apiConfig.value });
     } catch (error) {
       console.error("Failed to load user dashboard stats:", error);
     }
     
     await loadApiKey();
     
-    // Load presence data and start refresh
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    await checkWakatimeConfig();
+    
     await loadPresenceData();
     startPresenceRefresh();
   } catch (error) {
     console.error("Failed to load user data:", error);
   }
+}
+
+async function checkWakatimeConfig(forceShowModal = false) {
+  if (!authState.value.is_authenticated || !apiKey.value) {
+    return;
+  }
+  
+  const apiUrl = apiConfig.value.base_url || "https://hackatime.hackclub.com";
+  if (!apiUrl || apiUrl.trim() === "") {
+    console.warn("API URL is not set, skipping wakatime config check");
+    return;
+  }
+  
+  try {
+    const check = await invoke("check_wakatime_config", {
+      apiKey: apiKey.value,
+      apiUrl: apiUrl,
+    }) as any;
+    
+    wakatimeConfigCheck.value = check;
+    
+    if (forceShowModal || (!hasCheckedConfigThisSession.value && !check.matches)) {
+      showWakatimeSetupModal.value = true;
+      hasCheckedConfigThisSession.value = true;
+    }
+  } catch (error) {
+    console.error("Failed to check wakatime config:", error);
+  }
+}
+
+async function handleWakatimeConfigApplied() {
+  showWakatimeSetupModal.value = false;
+  
+  await checkWakatimeConfig(false);
+  
+  if (wakatimeConfigCheck.value && !wakatimeConfigCheck.value.matches) {
+    alert("Configuration was applied but still doesn't match. Please check the error logs.");
+  }
+}
+
+async function openWakatimeConfigModal() {
+  hasCheckedConfigThisSession.value = true; 
+  await checkWakatimeConfig(true);
 }
 
 async function loadApiKey() {
@@ -267,12 +277,11 @@ async function loadHackatimeInfo() {
 async function loadPresenceData() {
   const now = Date.now();
   if (presenceFetchInProgress.value) {
-    return; // Skip if a fetch is already in flight
+    return;
   }
   if (now < nextPresenceFetchAllowedAt.value) {
-    return; // Respect backoff window
+    return;
   }
-  // Enforce hard minimum interval of 60s between network calls
   if (now - lastPresenceFetchAt.value < 60_000) {
     return;
   }
@@ -280,14 +289,12 @@ async function loadPresenceData() {
   presenceFetchInProgress.value = true;
   try {
     await api.initialize();
-    // Use the Rust backend's get_latest_heartbeat which includes session logic
     presenceData.value = await invoke("get_latest_heartbeat", { 
       apiConfig: apiConfig.value 
     });
     lastPresenceFetchAt.value = Date.now();
   } catch (error: any) {
     console.error("Failed to load presence data:", error);
-    // If we hit rate limit, back off for 60s
     const message = error?.message || "";
     if (typeof message === "string" && message.includes("429")) {
       nextPresenceFetchAllowedAt.value = Date.now() + 60_000;
@@ -299,12 +306,10 @@ async function loadPresenceData() {
 }
 
 function startPresenceRefresh() {
-  // Ensure only one interval is active
   if (presenceRefreshInterval.value) {
     clearInterval(presenceRefreshInterval.value);
     presenceRefreshInterval.value = null;
   }
-  // Refresh presence data every 60 seconds (1 minute)
   presenceRefreshInterval.value = setInterval(loadPresenceData, 60000);
 }
 
@@ -321,7 +326,6 @@ async function authenticate() {
   try {
     await invoke("authenticate_with_rails", { apiConfig: apiConfig.value });
     
-    // Show instructions for OAuth completion
     alert(`OAuth authentication opened in browser!\n\nInstructions:\n1. Complete the OAuth flow in your browser\n2. The app will automatically handle the callback\n3. If the callback doesn't work, you can manually paste the authorization code from the URL\n\nFor manual entry:\n- Copy the 'code' parameter from the callback URL\n- Use the "Direct OAuth" field below to paste it`);
   } catch (error) {
     console.error("Authentication failed:", error);
@@ -335,6 +339,7 @@ async function logout() {
   try {
     stopPresenceRefresh();
     await invoke("logout");
+    hasCheckedConfigThisSession.value = false;
     await loadAuthState();
   } catch (error) {
     console.error("Logout failed:", error);
@@ -380,7 +385,6 @@ async function handleDirectOAuthAuth() {
     console.log("Token length:", directOAuthToken.value.length);
     console.log("API config:", apiConfig.value);
     
-    // Authenticate with the direct OAuth token
     await invoke("authenticate_with_direct_oauth", { 
       oauthToken: directOAuthToken.value,
       apiConfig: apiConfig.value 
@@ -389,7 +393,6 @@ async function handleDirectOAuthAuth() {
     console.log("Direct OAuth auth successful!");
     await loadAuthState();
     
-    // Ensure the auth state is saved after successful authentication
     if (authState.value.is_authenticated) {
       try {
         await invoke("save_auth_state", { authState: authState.value });
@@ -399,7 +402,7 @@ async function handleDirectOAuthAuth() {
       }
     }
     
-    directOAuthToken.value = ""; // Clear the input
+    directOAuthToken.value = "";
     alert("Authentication successful! You are now logged in.");
   } catch (error) {
     console.error("Direct OAuth auth failed:", error);
@@ -408,150 +411,139 @@ async function handleDirectOAuthAuth() {
     isLoading.value = false;
   }
 }
-
-
-
-function getPageTitle(): string {
-  switch (currentPage.value) {
-    case 'home':
-      return 'Home';
-    case 'projects':
-      return 'Projects';
-    case 'statistics':
-      return 'Statistics';
-    case 'settings':
-      return 'Settings';
-    default:
-      return 'Home';
-  }
-}
 </script>
 
 <template>
-  <div class="flex h-screen text-text-primary font-sans outfit" style="background-color: #0A0101;">
-    <!-- Left Sidebar -->
-    <aside class="w-64 flex flex-col p-0 shadow-xl rounded-r-2xl" style="background-color: #191415;">
-      <div class="p-6" style="background-color: #191415;">
-        <h1 class="text-2xl font-bold text-accent-primary m-0 text-center">Hackatime</h1>
+  <div class="flex flex-col h-screen text-text-primary font-sans outfit app-window" style="background-color: #322433;">
+    <CustomTitlebar />
+    
+    <div class="flex flex-1 overflow-hidden">
+      <aside class="w-64 min-w-64 flex flex-col p-0 shadow-xl relative overflow-hidden" style="background-color: #3D2C3E;">
+      <div class="absolute left-0 top-[76px] w-full pointer-events-none z-0">
+        <div class="absolute left-[63px] top-[616.5px] text-[36px] text-black opacity-20 font-light whitespace-nowrap" style="font-family: 'Outfit', sans-serif;">
+          01:55:58
+        </div>
+        
+        <img src="/src/assets/suits-icons.svg" alt="" class="absolute left-[200px] top-0 w-[84px] h-[17.778px]" />
+        
+        <img src="/src/assets/decorative-lines.svg" alt="" class="absolute left-0 top-[377px] w-[16px] h-[207px]" />
+        
+        <img src="/src/assets/decorative-lines.svg" alt="" class="absolute left-[284px] top-[377px] w-[16px] h-[207px]" />
+        
       </div>
       
-      <nav class="flex-1 py-4">
-        <a href="#" class="flex items-center gap-3 px-6 py-3 no-underline transition-all duration-200 border-l-4 border-transparent hover:bg-bg-secondary hover:text-text-primary hover:border-l-accent-primary" :class="{ 'bg-bg-secondary text-accent-primary border-l-accent-primary': currentPage === 'home' }" @click.prevent="currentPage = 'home'" style="color: #B0BAC4;">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-          </svg>
-          <span class="font-medium">Home</span>
-        </a>
-        <a href="#" class="flex items-center gap-3 px-6 py-3 no-underline transition-all duration-200 border-l-4 border-transparent hover:bg-bg-secondary hover:text-text-primary hover:border-l-accent-primary" :class="{ 'bg-bg-secondary text-accent-primary border-l-accent-primary': currentPage === 'projects' }" @click.prevent="currentPage = 'projects'" style="color: #B0BAC4;">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-          </svg>
-          <span class="font-medium">Projects</span>
-        </a>
-        <a href="#" class="flex items-center gap-3 px-6 py-3 no-underline transition-all duration-200 border-l-4 border-transparent hover:bg-bg-secondary hover:text-text-primary hover:border-l-accent-primary" :class="{ 'bg-bg-secondary text-accent-primary border-l-accent-primary': currentPage === 'statistics' }" @click.prevent="currentPage = 'statistics'" style="color: #B0BAC4;">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-          </svg>
-          <span class="font-medium">Statistics</span>
-        </a>
-        <a href="#" class="flex items-center gap-3 px-6 py-3 no-underline transition-all duration-200 border-l-4 border-transparent hover:bg-bg-secondary hover:text-text-primary hover:border-l-accent-primary" :class="{ 'bg-bg-secondary text-accent-primary border-l-accent-primary': currentPage === 'settings' }" @click.prevent="currentPage = 'settings'" style="color: #B0BAC4;">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-          </svg>
-          <span class="font-medium">Settings</span>
-        </a>
-      </nav>
-      
-      <div class="p-6" style="background-color: #191415;">
-        <button v-if="authState.is_authenticated" @click="logout" class="flex items-center gap-3 w-full px-3 py-3 bg-transparent border border-accent-danger rounded-xl text-accent-danger cursor-pointer transition-all duration-200 text-sm hover:bg-accent-danger hover:text-white">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-          </svg>
-          <span class="font-medium">Logout</span>
-        </button>
+      <div class="relative z-10 flex flex-col h-full">
+        <div class="p-6" style="background-color: #3D2C3E;">
+          <div class="flex justify-center items-center">
+            <img src="/src/assets/bird-illustration.svg" alt="Hackatime" class="h-12 w-auto" />
+          </div>
+        </div>
+        
+        <nav class="flex-1 py-4 px-6 space-y-5">
+          <button 
+            @click="currentPage = 'home'" 
+            class="pushable w-full"
+            :class="currentPage === 'home' ? 'pushable-active' : 'pushable-inactive'"
+            style="font-family: 'Outfit', sans-serif;"
+          >
+            <span 
+              class="front w-full h-16 rounded-lg border-2 border-[rgba(0,0,0,0.35)] flex items-center px-4 text-xl font-bold"
+              :style="currentPage === 'home' ? 'background: linear-gradient(135deg, #E99682 0%, #EB9182 33%, #E88592 66%, #E883AE 100%); color: white;' : 'background-color: #543c55; color: white;'"
+            >
+              <svg class="w-8 h-8 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+              </svg>
+              <span class="ml-auto">home</span>
+            </span>
+          </button>
+          
+          <!-- Projects button -->
+          <button 
+            @click="currentPage = 'projects'" 
+            class="pushable w-full"
+            :class="currentPage === 'projects' ? 'pushable-active' : 'pushable-inactive'"
+            style="font-family: 'Outfit', sans-serif;"
+          >
+            <span 
+              class="front w-full h-16 rounded-lg border-2 border-[rgba(0,0,0,0.35)] flex items-center px-4 text-xl font-bold"
+              :style="currentPage === 'projects' ? 'background: linear-gradient(135deg, #E99682 0%, #EB9182 33%, #E88592 66%, #E883AE 100%); color: white;' : 'background-color: #543c55; color: white;'"
+            >
+              <svg class="w-8 h-8 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+              </svg>
+              <span class="ml-auto">projects</span>
+            </span>
+          </button>
+          
+          <!-- Statistics button (renamed from friends in Figma, keeping your existing page) -->
+          <button 
+            @click="currentPage = 'statistics'" 
+            class="pushable w-full"
+            :class="currentPage === 'statistics' ? 'pushable-active' : 'pushable-inactive'"
+            style="font-family: 'Outfit', sans-serif;"
+          >
+            <span 
+              class="front w-full h-16 rounded-lg border-2 border-[rgba(0,0,0,0.35)] flex items-center px-4 text-xl font-bold"
+              :style="currentPage === 'statistics' ? 'background: linear-gradient(135deg, #E99682 0%, #EB9182 33%, #E88592 66%, #E883AE 100%); color: white;' : 'background-color: #543c55; color: white;'"
+            >
+              <svg class="w-8 h-8 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+              </svg>
+              <span class="ml-auto">statistics</span>
+            </span>
+          </button>
+        </nav>
+        
+        <div class="p-6 mt-auto" style="background-color: #3D2C3E;">
+          <UserProfileCard 
+            v-if="authState.is_authenticated"
+            :authState="authState"
+            :userData="userData"
+            :presenceData="presenceData"
+            :apiConfig="apiConfig"
+            @openSettings="currentPage = 'settings'"
+          />
+        </div>
       </div>
     </aside>
 
     <!-- Main Content Area -->
-    <main class="flex-1 p-6 overflow-y-auto">
+    <main class="flex-1 p-6 overflow-y-auto min-w-0">
       <!-- Home Page Layout -->
-      <div v-if="currentPage === 'home'" class="flex flex-col h-full gap-6">
-        <!-- This Week Card -->
-        <div v-if="authState.is_authenticated && userStats" class="rounded-2xl shadow-card mb-6 p-6 flex flex-col" style="background-color: #191415;">
-          <!-- This Week Title -->
-          <h3 class="text-text-primary font-semibold text-lg mb-4">This Week</h3>
-          <div class="flex gap-8 flex-1 items-center mb-4">
-            <!-- Left Section - Streak & Hours Display (2/3 width) -->
-            <div class="flex justify-center items-center space-x-20" style="flex: 2;">
-              <!-- Streak Section -->
-              <div class="flex flex-col items-center">
-                <div class="relative">
-                  <img src="/flame-icon.svg" alt="Streak" class="w-20 h-20" />
-                  <div class="absolute inset-0 flex items-end justify-center pb-2">
-                    <div class="text-white drop-shadow-lg font-bold" :class="{
-                      'text-4xl': (userStats.current_streak || 0) < 10,
-                      'text-3xl': (userStats.current_streak || 0) >= 10 && (userStats.current_streak || 0) < 100,
-                      'text-2xl': (userStats.current_streak || 0) >= 100 && (userStats.current_streak || 0) < 1000,
-                      'text-xl': (userStats.current_streak || 0) >= 1000
-                    }">
-                      {{ userStats.current_streak || 0 }}
-                    </div>
-                  </div>
-                </div>
-                <div class="text-center mt-2">
-                  <div class="text-text-secondary text-xl font-semibold">day streak</div>
-                </div>
-              </div>
-
-              <!-- Hours Section -->
-              <div class="flex flex-col items-center">
-                <div class="text-4xl font-bold text-accent-primary">
-                  {{ Math.round((userStats.weekly_stats?.time_coded_seconds || 0) / 3600 * 10) / 10 }}
-                </div>
-                <div class="text-center mt-3">
-                  <div class="text-text-secondary text-xl font-semibold">hours this week</div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Right Section - Weekly Chart.js Chart (1/3 width) -->
-            <div class="flex flex-col justify-center pl-6" style="flex: 1;">
-              <WeeklyChart :data="weeklyChartData" />
-            </div>
-          </div>
-          
-          <!-- Trend Card -->
-          <div v-if="weeklyTrend" class="mt-4">
-            <TrendCard
-              :title="weeklyTrend.title"
-              :change="weeklyTrend.change"
-              :change-type="weeklyTrend.changeType"
-              :period="weeklyTrend.period"
-              :icon="weeklyTrend.icon"
-            />
-          </div>
+      <div v-if="currentPage === 'home'" class="flex h-full gap-6 min-h-0 responsive-stack">
+        <!-- Main Home Content (Left Side - 2/3) -->
+        <div class="flex-1 flex flex-col min-w-0">
+          <Home 
+            :authState="authState"
+            :apiConfig="apiConfig"
+            :userData="userData"
+            :userStats="userStats"
+            :weeklyChartData="weeklyChartData"
+            :isLoading="isLoading"
+            :isDevMode="isDevMode"
+            v-model:directOAuthToken="directOAuthToken"
+            @authenticate="authenticate"
+            @handleDirectOAuthAuth="handleDirectOAuthAuth"
+          />
         </div>
 
-        <!-- Current Session Card -->
-        <div v-if="authState.is_authenticated" class="mb-6">
-          <PresenceCard :authState="authState" :presenceData="presenceData" :apiConfig="apiConfig" />
+        <!-- Leaderboard Sidebar (Right Side - 1/3) -->
+        <div v-if="authState.is_authenticated && userStats" class="w-64 min-w-64 flex flex-col responsive-full-width">
+          <div class="card-3d-app h-full">
+            <div class="rounded-[8px] border border-black p-4 card-3d-app-front h-full flex flex-col" style="background-color: #3D2C3E;">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-white text-[16px] font-bold italic m-0" style="font-family: 'Outfit', sans-serif;">
+                leaderboard
+              </h2>
+              <div class="flex gap-2 text-[10px]" style="font-family: 'Outfit', sans-serif;">
+                <span class="text-white underline cursor-pointer">friends</span>
+                <span class="text-white cursor-pointer">global</span>
+              </div>
+            </div>
+            <!-- Leaderboard content would go here -->
+          </div>
+          </div>
         </div>
-
-
-        <!-- Home Component -->
-        <Home 
-          :authState="authState"
-          :apiConfig="apiConfig"
-          :userData="userData"
-          :userStats="userStats"
-          :isLoading="isLoading"
-          :isDevMode="isDevMode"
-          v-model:directOAuthToken="directOAuthToken"
-          @authenticate="authenticate"
-          @handleDirectOAuthAuth="handleDirectOAuthAuth"
-        />
-        
       </div>
       
       <!-- Statistics Page Layout (full page) -->
@@ -559,19 +551,23 @@ function getPageTitle(): string {
         <Statistics :apiConfig="apiConfig" />
       </div>
 
-      <!-- Other Pages Layout (single card) -->
+      <!-- Settings Page Layout (no outer card) -->
+      <div v-else-if="currentPage === 'settings'" class="flex flex-col h-full">
+        <Settings 
+          :apiKey="apiKey" 
+          v-model:showApiKey="showApiKey" 
+          @copyApiKey="copyApiKey" 
+          @logout="logout" 
+          @checkWakatimeConfig="openWakatimeConfigModal"
+        />
+      </div>
+
+      <!-- Projects Page Layout -->
       <div v-else class="flex flex-col h-full">
-        <div class="bg-bg-card border border-border-primary rounded-2xl overflow-hidden shadow-card flex flex-col min-h-96">
-          <div class="flex justify-between items-center px-6 py-5 border-b border-border-primary bg-bg-card-tertiary">
-            <h2 class="m-0 text-xl font-semibold text-text-primary">{{ getPageTitle() }}</h2>
-          </div>
-          <div class="p-6 flex-1 overflow-y-auto">
-            <Projects v-if="currentPage === 'projects'" :currentTheme="currentTheme" :toggleTheme="toggleTheme" :apiConfig="apiConfig" />
-            <Settings v-if="currentPage === 'settings'" :currentTheme="currentTheme" :toggleTheme="toggleTheme" :apiKey="apiKey" v-model:showApiKey="showApiKey" @copyApiKey="copyApiKey" />
-          </div>
-        </div>
+        <Projects :apiConfig="apiConfig" />
       </div>
     </main>
+    </div>
 
     <!-- Configuration Modal -->
     <div v-if="isConfigOpen" class="fixed inset-0 bg-black/70 flex justify-center items-center z-50" @click="isConfigOpen = false">
@@ -593,7 +589,75 @@ function getPageTitle(): string {
         </div>
       </div>
     </div>
+
+    <!-- Wakatime Setup Modal -->
+    <WakatimeSetupModal
+      v-if="showWakatimeSetupModal && wakatimeConfigCheck && apiKey"
+      :api-key="apiKey"
+      :api-url="apiConfig.base_url || 'https://hackatime.hackclub.com'"
+      :config-check="wakatimeConfigCheck"
+      @close="showWakatimeSetupModal = false"
+      @applied="handleWakatimeConfigApplied"
+    />
   </div>
 </template>
 
-<!-- All styles now handled by Tailwind CSS -->
+<style scoped>
+.app-window {
+  border-radius: 12px;
+  overflow: hidden;
+  height: 100vh;
+}
+
+.pushable {
+  border-radius: 12px;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  outline-offset: 4px;
+  position: relative;
+}
+
+.pushable-active {
+  background: linear-gradient(135deg, #B85E6D 0%, #B85E6D 33%, #B5546F 66%, #B55389 100%);
+}
+
+.pushable-inactive {
+  background-color: #2A1F2B;
+}
+
+.front {
+  display: flex;
+  align-items: center;
+  border-radius: 12px;
+  transform: translateY(-6px);
+  transition: transform 0.1s ease;
+  position: relative;
+}
+
+.pushable:active .front {
+  transform: translateY(-2px);
+}
+
+/* 3D Card Effect for App-level cards */
+.card-3d-app {
+  position: relative;
+  border-radius: 8px;
+  padding: 0;
+}
+
+.card-3d-app::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  background-color: #2A1F2B;
+  z-index: 0;
+}
+
+.card-3d-app-front {
+  position: relative;
+  transform: translateY(-6px);
+  z-index: 1;
+}
+</style>
