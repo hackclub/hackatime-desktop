@@ -163,10 +163,10 @@ pub fn run() {
                             use objc::{msg_send, sel, sel_impl};
                             
                             
-                            let bg_color = NSColor::clearColor(nil);
-                            ns_window.setBackgroundColor_(bg_color);
-                            
-                            ns_window.setOpaque_(false);
+                        let bg_color = NSColor::clearColor(nil);
+                        ns_window.setBackgroundColor_(bg_color);
+                        
+                        ns_window.setOpaque_(0);
                             
                             let content_view: id = msg_send![ns_window, contentView];
                             let _: () = msg_send![content_view, setWantsLayer: true];
