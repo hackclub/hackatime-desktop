@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/hackclub/hackatime-desktop/compare/app-v1.2.0...app-v1.2.1) (2025-10-07)
+
+
+### 🐛 Bugfixes
+
+* remove unused import and variable ([bf8b324](https://github.com/hackclub/hackatime-desktop/commit/bf8b3248d86f1f40eef8a4bd6cf363cffe6934aa))
+
 ## [1.2.0](https://github.com/hackclub/hackatime-desktop/compare/app-v1.1.12...app-v1.2.0) (2025-10-07)
 
 
