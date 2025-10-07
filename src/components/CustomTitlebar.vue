@@ -91,7 +91,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { getCurrent } from '@tauri-apps/api/core';
 
 const isMaximized = ref(false);
 const isMacOS = ref(false);

@@ -104,7 +104,7 @@ const props = defineProps<{
   apiConfig: any;
 }>();
 
-const emit = defineEmits<{
+defineEmits<{
   openSettings: [];
 }>();
 
