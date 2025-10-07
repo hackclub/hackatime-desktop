@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/hackclub/hackatime-desktop/compare/app-v1.1.12...app-v1.2.0) (2025-10-07)
+
+
+### ✨ Features
+
+* home page redesign ([#40](https://github.com/hackclub/hackatime-desktop/issues/40)) ([aaba534](https://github.com/hackclub/hackatime-desktop/commit/aaba534a6dfe2dfb3ce33a9aa2ce25ddc9c0cb4c))
+
 ## [1.1.12](https://github.com/hackclub/hackatime-desktop/compare/app-v1.1.11...app-v1.1.12) (2025-10-05)
 
 
