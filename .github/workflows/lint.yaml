@@ -40,7 +40,7 @@ jobs:
           lfs: true
       
       - name: Run MegaLinter
-        uses: oxsecurity/megalinter/flavors/rust@v8.8.0
+        uses: oxsecurity/megalinter/flavors/rust@v9.1.0
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
           DEFAULT_BRANCH: main
