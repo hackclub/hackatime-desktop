@@ -13,7 +13,6 @@ interface AuthState {
 export class KubeTimeApi {
   private baseUrl: string = 'https://hackatime.hackclub.com'
   private accessToken: string | null = null
-  private latestPresenceCache: { data: any | null, fetchedAt: number } = { data: null, fetchedAt: 0 }
 
   async initialize () {
     try {
@@ -148,12 +147,6 @@ export class KubeTimeApi {
     }
 
     try {
-      
-      const now = Date.now()
-      if (now - this.latestPresenceCache.fetchedAt < 60_000 && this.latestPresenceCache.data !== null) {
-        return this.latestPresenceCache.data
-      }
-
       const response = await fetch(`${this.baseUrl}/api/v1/authenticated/heartbeats/latest`, {
         headers: {
           Authorization: `Bearer ${this.accessToken}`,
@@ -166,7 +159,6 @@ export class KubeTimeApi {
       }
 
       const json = await response.json()
-      this.latestPresenceCache = { data: json, fetchedAt: Date.now() }
       return json
     } catch (error) {
       console.error('Failed to fetch current presence:', error)
