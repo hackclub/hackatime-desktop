@@ -153,7 +153,11 @@ onMounted(async () => {
     }
   });
   
-  // Check for updates automatically on startup
+  if (authState.value.is_authenticated) {
+    await loadPresenceData();
+    startPresenceRefresh();
+  }
+  
   checkForUpdatesAndInstall();
 });
 
@@ -292,24 +296,22 @@ async function loadHackatimeInfo() {
 }
 
 async function loadPresenceData() {
-  const now = Date.now();
   if (presenceFetchInProgress.value) {
     return;
   }
+  
+  const now = Date.now();
   if (now < nextPresenceFetchAllowedAt.value) {
-    return;
-  }
-  if (now - lastPresenceFetchAt.value < 60_000) {
     return;
   }
 
   presenceFetchInProgress.value = true;
   try {
-    await api.initialize();
     presenceData.value = await invoke("get_latest_heartbeat", { 
       apiConfig: apiConfig.value 
     });
     lastPresenceFetchAt.value = Date.now();
+    console.log("Heartbeat data fetched from backend:", presenceData.value);
   } catch (error: any) {
     console.error("Failed to load presence data:", error);
     const message = error?.message || "";
@@ -328,6 +330,7 @@ function startPresenceRefresh() {
     presenceRefreshInterval.value = null;
   }
   presenceRefreshInterval.value = setInterval(loadPresenceData, 60000);
+  console.log("Started heartbeat refresh interval (every 60 seconds)");
 }
 
 function stopPresenceRefresh() {
