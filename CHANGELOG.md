@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/hackclub/hackatime-desktop/compare/app-v1.3.0...app-v1.3.1) (2025-10-08)
+
+
+### 👽 Miscellaneous
+
+* **ci:** change ubuntu file path ([cd241bd](https://github.com/hackclub/hackatime-desktop/commit/cd241bd2acf5b29a9c1d359646a4969f18004ad1))
+
 ## [1.3.0](https://github.com/hackclub/hackatime-desktop/compare/app-v1.2.5...app-v1.3.0) (2025-10-08)
 
 
