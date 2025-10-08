@@ -2,6 +2,8 @@
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrent, onOpenUrl } from "@tauri-apps/plugin-deep-link";
+import { check } from '@tauri-apps/plugin-updater';
+import { relaunch } from '@tauri-apps/plugin-process';
 import { api } from "./api";
 import Home from "./views/Home.vue";
 import Projects from "./views/Projects.vue";
@@ -10,6 +12,18 @@ import Statistics from "./views/Statistics.vue";
 import UserProfileCard from "./components/UserProfileCard.vue";
 import CustomTitlebar from "./components/CustomTitlebar.vue";
 import WakatimeSetupModal from "./components/WakatimeSetupModal.vue";
+
+if (!(window as any).__hackatimeConsoleWrapped) {
+  (window as any).__hackatimeConsoleWrapped = true;
+  const originalConsole = { ...console } as any;
+  ['debug','info','warn','error'].forEach((lvl) => {
+    const orig = (originalConsole as any)[lvl] || originalConsole.log;
+    (console as any)[lvl] = (...args: any[]) => {
+      try { orig.apply(originalConsole, args); } catch (_) {}
+    };
+  });
+  console.info('[CONSOLE] Console wrapper initialized - logs will be captured');
+}
 
 interface AuthState {
   is_authenticated: boolean;
@@ -138,6 +152,9 @@ onMounted(async () => {
       await loadAuthState();
     }
   });
+  
+  // Check for updates automatically on startup
+  checkForUpdatesAndInstall();
 });
 
 onUnmounted(() => {
@@ -409,6 +426,45 @@ async function handleDirectOAuthAuth() {
     alert("Direct OAuth auth failed: " + error);
   } finally {
     isLoading.value = false;
+  }
+}
+
+async function checkForUpdatesAndInstall() {
+  try {
+    console.info('[AUTO-UPDATE] Checking for updates...');
+    const update = await check();
+    
+    if (update) {
+      console.info(`[AUTO-UPDATE] Update available: ${update.version}`);
+      console.info('[AUTO-UPDATE] Downloading and installing update...');
+      
+      let downloaded = 0;
+      let contentLength = 0;
+      
+      await update.downloadAndInstall((event) => {
+        switch (event.event) {
+          case 'Started':
+            contentLength = event.data.contentLength ?? 0;
+            console.info(`[AUTO-UPDATE] Started downloading ${event.data.contentLength} bytes`);
+            break;
+          case 'Progress':
+            downloaded += event.data.chunkLength;
+            const percentage = contentLength > 0 ? Math.round((downloaded / contentLength) * 100) : 0;
+            console.info(`[AUTO-UPDATE] Download progress: ${percentage}% (${downloaded} / ${contentLength} bytes)`);
+            break;
+          case 'Finished':
+            console.info('[AUTO-UPDATE] Download finished');
+            break;
+        }
+      });
+      
+      console.info('[AUTO-UPDATE] Update installed successfully. Restarting app...');
+      await relaunch();
+    } else {
+      console.info('[AUTO-UPDATE] No updates available - app is up to date');
+    }
+  } catch (error) {
+    console.error('[AUTO-UPDATE] Auto-update check failed:', error);
   }
 }
 </script>
