@@ -15,7 +15,16 @@ pub struct HeartbeatData {
     pub language: Option<String>,
     pub entity: Option<String>,
     pub time: f64,
+    #[serde(default)]
     pub timestamp: i64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub category: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub operating_system: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub machine: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -60,23 +69,33 @@ pub async fn get_latest_heartbeat(
         .ok_or("No access token available")?;
 
     let client = reqwest::Client::new();
+    let request_url = format!(
+        "{}/api/v1/authenticated/heartbeats/latest",
+        base_url
+    );
+    
+    push_log("info", "backend", format!("Fetching latest heartbeat from: {}", request_url));
+    
     let response = client
-        .get(&format!(
-            "{}/api/v1/authenticated/heartbeats/latest",
-            base_url
-        ))
+        .get(&request_url)
         .bearer_auth(access_token)
         .send()
         .await
-        .map_err(|e| format!("Failed to get latest heartbeat: {}", e))?;
+        .map_err(|e| {
+            push_log("error", "backend", format!("HTTP request failed: {}", e));
+            format!("Failed to get latest heartbeat: {}", e)
+        })?;
 
     let status = response.status();
+    push_log("info", "backend", format!("API response status: {} {}", status.as_u16(), status.canonical_reason().unwrap_or("")));
+    
     if !status.is_success() {
         let error_text = response
             .text()
             .await
             .unwrap_or_else(|_| "Unknown error".to_string());
 
+        push_log("error", "backend", format!("API returned error response: {}", error_text));
         
         if status == 429 {
             push_log("warn", "backend", "Rate limited, will retry later".to_string());
@@ -86,13 +105,53 @@ pub async fn get_latest_heartbeat(
         return Err(format!("Failed to get latest heartbeat: {}", error_text));
     }
 
-    let heartbeat_response: HeartbeatResponse = response
-        .json()
+    let response_text = response
+        .text()
         .await
-        .map_err(|e| format!("Failed to parse heartbeat response: {}", e))?;
+        .map_err(|e| {
+            push_log("error", "backend", format!("Failed to read response body: {}", e));
+            format!("Failed to read response: {}", e)
+        })?;
+    
+    push_log("info", "backend", format!("Raw API response: {}", response_text));
+
+    let heartbeat_data: Option<HeartbeatData> = if response_text.trim() == "null" || response_text.trim().is_empty() {
+        None
+    } else {
+        match serde_json::from_str::<HeartbeatData>(&response_text) {
+            Ok(mut data) => {
+                if data.timestamp == 0 {
+                    data.timestamp = data.time as i64;
+                }
+                push_log("info", "backend", format!("Successfully parsed heartbeat data: {:?}", data));
+                Some(data)
+            }
+            Err(e) => {
+                push_log("error", "backend", format!("Failed to parse heartbeat JSON: {}", e));
+                None
+            }
+        }
+    };
+
+    let heartbeat_response = HeartbeatResponse {
+        heartbeat: heartbeat_data,
+    };
 
     
+    push_log("info", "backend", format!("Latest heartbeat response: {:?}", heartbeat_response));
+    
+    
     if let Some(heartbeat) = &heartbeat_response.heartbeat {
+        
+        push_log("info", "backend", format!(
+            "Heartbeat details - ID: {}, Project: {}, Language: {}, Editor: {}, Time: {}",
+            heartbeat.id,
+            heartbeat.project.as_ref().unwrap_or(&"None".to_string()),
+            heartbeat.language.as_ref().unwrap_or(&"None".to_string()),
+            heartbeat.editor.as_ref().unwrap_or(&"None".to_string()),
+            heartbeat.timestamp
+        ));
+        
         let mut session = session_state.lock().await;
         let current_time = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -101,14 +160,21 @@ pub async fn get_latest_heartbeat(
 
         
         let heartbeat_age = current_time - heartbeat.timestamp;
-        let is_recent = heartbeat_age < 120; 
+        let is_recent = heartbeat_age < 180; 
+        
+        push_log("debug", "backend", format!(
+            "Heartbeat age: {} seconds, is_recent: {}",
+            heartbeat_age,
+            is_recent
+        ));
 
         
         let is_duplicate = session.last_heartbeat_id == Some(heartbeat.id);
 
-        if is_duplicate {
-            
-            push_log("info", "backend", "Duplicate heartbeat detected, ending session".to_string());
+        if is_duplicate && is_recent {
+            push_log("debug", "backend", "Duplicate heartbeat but still recent, continuing session".to_string());
+        } else if is_duplicate && !is_recent {
+            push_log("info", "backend", "Duplicate heartbeat and too old, ending session".to_string());
             session.is_active = false;
             session.start_time = None;
             session.last_heartbeat_id = None;
@@ -183,6 +249,7 @@ pub async fn get_latest_heartbeat(
         }
     } else {
         
+        push_log("info", "backend", "No heartbeat data in response (heartbeat is null)".to_string());
         let mut session = session_state.lock().await;
         if session.is_active {
             push_log("info", "backend", "No heartbeat data, ending session".to_string());
