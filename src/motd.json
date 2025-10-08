@@ -1,0 +1,156 @@
+{
+    "regular": [
+      "every hour brings you power.",
+      "also try terraria!",
+      "also try minecraft!",
+      "also try siege.hackclub.com!",
+      "in the last hour, 59 minutes have passed!",
+      "in the last minute, 60 seconds have occurred!",
+      "now with 20% more tracking!",
+      "batteries not included!",
+      "as seen on TV!",
+      "imagine a world where everyone ships code daily.",
+      "made with love <3.",
+      "powered by orpheus!",
+      "ship it like it's hot!",
+      "one more feature couldn't hurt... right?",
+      "contains no bugs! (that we know of)",
+      "404: sleep not found.",
+      "ctrl+z is your best friend.",
+      "it's dangerous to code alone, take this tracker!",
+      "doctors hate this one weird time tracking trick!",
+      "still faster than internet explorer.",
+      "this app contains traces of rust.",
+      "gluten-free, vegan-friendly code tracking!",
+      "zach would be proud!",
+      "orpheus approved™",
+      "hcb integration wen?",
+      "imagine a world where you track time ironically.",
+      "sheesh! that's a lot of hours!",
+      "respectfully, go ship something.",
+      "brb, tracking time.",
+      "ngl this slaps.",
+      "built different.",
+      "in my productive era.",
+      "touch grass (after you ship).",
+      "10/10 would track again.",
+      "i am inevitable (so is your deadline).",
+      "i can do this all day (said no developer ever)."
+    ],
+    "holidays": {
+      "01-01": {
+        "name": "New Year's Day",
+        "messages": [
+          "new year, who dis?",
+          "Happy New Year!",
+          "YOU HAVEN'T TOUCHED GRASS SINCE LAST YEAR????"
+        ]
+      },
+      "02-14": {
+        "name": "Valentine's Day",
+        "messages": [
+          "roses are red, violets are blue, undefined is not a function, line 42.",
+          "be my valentine.js?"
+        ]
+      },
+      "03-17": {
+        "name": "St. Patrick's Day",
+        "messages": [
+          "feeling lucky?"
+        ]
+      },
+      "04-01": {
+        "name": "April Fools' Day",
+        "messages": [
+          "this isn't a bug, it's an undocumented feature.",
+          "works on my machine. ¯\\_(ツ)_/¯",
+          "debugging: being the detective in a crime movie where you're also the murderer.",
+          "psych! your code actually works today!",
+          "imagine a world where april fools never ends (aka production).",
+          "also try believing everything you read today!",
+          "in the last hour, 58 minutes passed! wait...",
+          "this message is a lie."
+        ]
+      },
+      "05-04": {
+        "name": "Star Wars Day",
+        "messages": [
+          "may the code be with you.",
+          "use the source, luke.",
+          "do or do not push --force. there is no try.",
+          "these aren't the bugs you're looking for.",
+          "i find your lack of tests disturbing.",
+          "imagine a world far, far away... but still with deadlines.",
+          "also try the dark side (vim)!"
+        ]
+      },
+      "07-04": {
+        "name": "Independence Day (US)",
+        "messages": [
+          "celebrating freedom with open source code.",
+          "declaring independence from legacy code.",
+          "liberty, justice, and bug-free code for all.",
+          "freedom from technical debt!",
+          "imagine a world where all code is free.",
+          "also try not setting off fireworks near your server rack!"
+        ]
+      },
+      "10-31": {
+        "name": "Halloween",
+        "messages": [
+          "beware of scary bugs in production tonight.",
+          "no tricks, just treats... and code.",
+          "debugging in the dark. spooky.",
+          "zombie processes everywhere!",
+          "boo! did i scare you? (not as scary as production errors)",
+          "imagine a world without halloween candy crashes.",
+          "also try not pushing to prod tonight!",
+          "in the last hour, several ghosts have haunted your codebase!"
+        ]
+      },
+      "11-28": {
+        "name": "Thanksgiving (US)",
+        "messages": [
+          "thankful for stackoverflow and caffeine.",
+          "grateful for that one person who writes good documentation.",
+          "counting blessings and closed issues.",
+          "imagine a world where we give thanks for working code.",
+          "also try spending time with family (after this commit)!",
+          "turkey && code ? happiness : confusion"
+        ]
+      },
+      "12-24": {
+        "name": "Christmas Eve",
+        "messages": [
+          "all i want for christmas is no merge conflicts.",
+          "santa's checking your commit history twice.",
+          "deck the halls with lines of code.",
+          "imagine a world where santa delivers features.",
+          "also try not deploying tonight!",
+          "twas the night before christmas and all through the repo..."
+        ]
+      },
+      "12-25": {
+        "name": "Christmas",
+        "messages": [
+          "merry codemas! unwrapping new features.",
+          "ho ho ho! time to commit some joy.",
+          "spreading holiday cheer and clean code.",
+          "imagine a world where every day feels like opening a PR.",
+          "also try spending time away from your computer!",
+          "you've been nice this year (mostly bug-free)!"
+        ]
+      },
+      "12-31": {
+        "name": "New Year's Eve",
+        "messages": [
+          "counting down to midnight and that final commit.",
+          "ending the year strong with one last push.",
+          "new year's resolution: write better docs.",
+          "imagine a world that starts fresh in 3... 2... 1...",
+          "also try not deploying during the countdown!",
+          "in the last hour of the year, 59 minutes have almost passed!"
+        ]
+      }
+    }
+  }
