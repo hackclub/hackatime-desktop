@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.3.0](https://github.com/hackclub/hackatime-desktop/compare/app-v1.2.5...app-v1.3.0) (2025-10-08)
+
+
+### ✨ Features
+
+* add monitoring ([ad2b793](https://github.com/hackclub/hackatime-desktop/commit/ad2b79367cf829d8b564f0811e074601e7d58438))
+* add motd ([e9f9acc](https://github.com/hackclub/hackatime-desktop/commit/e9f9acc976c8561b5602a49c60b4602bc78062a0))
+
+
+### 🐛 Bugfixes
+
+* change stats calculations ([e5c5c28](https://github.com/hackclub/hackatime-desktop/commit/e5c5c28e2b4cf5234aeac62609ecf604e93c1cbe))
+* eliminate cache for streak ([5bf8fa1](https://github.com/hackclub/hackatime-desktop/commit/5bf8fa1f3223953417435f4fd428ee26a9db29d9))
+* make autoupdater check on startup ([fc9c49f](https://github.com/hackclub/hackatime-desktop/commit/fc9c49f7ff5a38d0268d9606a494262afaf41762))
+
+
+### 👽 Miscellaneous
+
+* apply linter fixes ([6f42399](https://github.com/hackclub/hackatime-desktop/commit/6f42399224a9c1e21613713e675f777389334c2f))
+* **ci:** update ubuntu specific dependencies ([b7516b4](https://github.com/hackclub/hackatime-desktop/commit/b7516b4ccc1a42d5e9d3ee833d26ed586893123d))
+
 ## [1.2.5](https://github.com/hackclub/hackatime-desktop/compare/app-v1.2.4...app-v1.2.5) (2025-10-07)
 
 
