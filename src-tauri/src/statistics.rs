@@ -66,37 +66,71 @@ async fn fetch_hours_with_cache(
     let db = Database::new().await?;
     let cache_key = format!("hours:{}:{}", start_date, end_date);
     
-    if let Ok(Some(cached_data)) = db.get_cached_data(&cache_key).await {
-        push_log("debug", "backend", format!("Using cached data for {}", cache_key));
-        return serde_json::from_str(&cached_data)
-            .map_err(|e| format!("Failed to parse cached data: {}", e));
+    
+    let today = chrono::Utc::now().date_naive().format("%Y-%m-%d").to_string();
+    let is_current_date = end_date == today || start_date == today;
+    
+    if !is_current_date {
+        if let Ok(Some(cached_data)) = db.get_cached_data(&cache_key).await {
+            push_log("debug", "backend", format!("Using cached data for {}", cache_key));
+            let result: serde_json::Value = serde_json::from_str(&cached_data)
+                .map_err(|e| format!("Failed to parse cached data: {}", e))?;
+            push_log("info", "backend", format!("CACHED DATA for {}: {}", cache_key, serde_json::to_string_pretty(&result).unwrap_or_else(|_| "Failed to serialize".to_string())));
+            return Ok(result);
+        }
+    } else {
+        push_log("info", "backend", format!("Skipping cache for current date: {}", cache_key));
     }
     
-    push_log("debug", "backend", format!("Fetching fresh data for {}", cache_key));
+    let url = format!(
+        "{}/api/v1/authenticated/hours?start_date={}&end_date={}",
+        base_url,
+        start_date,
+        end_date
+    );
+    
+    push_log("info", "backend", format!("API REQUEST: GET {}", url));
+    push_log("debug", "backend", format!("Authorization: Bearer {}...", &access_token[..20.min(access_token.len())]));
+    
     let response = client
-        .get(&format!(
-            "{}/api/v1/authenticated/hours?start_date={}&end_date={}",
-            base_url,
-            start_date,
-            end_date
-        ))
+        .get(&url)
         .bearer_auth(access_token)
         .send()
         .await
-        .map_err(|e| format!("Failed to fetch hours: {}", e))?;
+        .map_err(|e| {
+            let error_msg = format!("Failed to fetch hours: {}", e);
+            push_log("error", "backend", format!(" API REQUEST FAILED: {}", error_msg));
+            error_msg
+        })?;
     
-    if !response.status().is_success() {
-        return Err(format!("API request failed with status: {}", response.status()));
+    let status = response.status();
+    push_log("info", "backend", format!("API RESPONSE: Status {}", status));
+    
+    if !status.is_success() {
+        let error_msg = format!("API request failed with status: {}", status);
+        push_log("error", "backend", format!(" {}", error_msg));
+        return Err(error_msg);
     }
     
     let data: serde_json::Value = response
         .json()
         .await
-        .map_err(|e| format!("Failed to parse API response: {}", e))?;
+        .map_err(|e| {
+            let error_msg = format!("Failed to parse API response: {}", e);
+            push_log("error", "backend", format!(" {}", error_msg));
+            error_msg
+        })?;
     
-    let data_str = serde_json::to_string(&data)
-        .map_err(|e| format!("Failed to serialize data for caching: {}", e))?;
-    db.set_cached_data(&cache_key, &data_str, 30).await.ok();
+    push_log("info", "backend", format!("API RESPONSE DATA: {}", serde_json::to_string_pretty(&data).unwrap_or_else(|_| "Failed to serialize".to_string())));
+    
+    if !is_current_date {
+        let data_str = serde_json::to_string(&data)
+            .map_err(|e| format!("Failed to serialize data for caching: {}", e))?;
+        db.set_cached_data(&cache_key, &data_str, 30).await.ok();
+        push_log("debug", "backend", format!("Cached data for {}", cache_key));
+    } else {
+        push_log("debug", "backend", format!("Not caching data for current date: {}", cache_key));
+    }
     
     Ok(data)
 }
@@ -106,22 +140,41 @@ async fn fetch_streak_with_cache(
     base_url: &str,
     access_token: &str,
 ) -> Result<serde_json::Value, String> {
-    push_log("info", "backend", format!("Fetching streak data from API"));
+    let url = format!("{}/api/v1/authenticated/streak", base_url);
+    
+    push_log("info", "backend", format!("API REQUEST: GET {}", url));
+    push_log("debug", "backend", format!("Authorization: Bearer {}...", &access_token[..20.min(access_token.len())]));
+    
     let response = client
-        .get(&format!("{}/api/v1/authenticated/streak", base_url))
+        .get(&url)
         .bearer_auth(access_token)
         .send()
         .await
-        .map_err(|e| format!("Failed to fetch streak: {}", e))?;
+        .map_err(|e| {
+            let error_msg = format!("Failed to fetch streak: {}", e);
+            push_log("error", "backend", format!(" API REQUEST FAILED: {}", error_msg));
+            error_msg
+        })?;
     
-    if !response.status().is_success() {
-        return Err(format!("Streak API request failed with status: {}", response.status()));
+    let status = response.status();
+    push_log("info", "backend", format!(" API RESPONSE: Status {}", status));
+    
+    if !status.is_success() {
+        let error_msg = format!("Streak API request failed with status: {}", status);
+        push_log("error", "backend", format!(" {}", error_msg));
+        return Err(error_msg);
     }
     
     let data: serde_json::Value = response
         .json()
         .await
-        .map_err(|e| format!("Failed to parse streak response: {}", e))?;
+        .map_err(|e| {
+            let error_msg = format!("Failed to parse streak response: {}", e);
+            push_log("error", "backend", format!(" {}", error_msg));
+            error_msg
+        })?;
+    
+    push_log("info", "backend", format!(" STREAK API RESPONSE DATA: {}", serde_json::to_string_pretty(&data).unwrap_or_else(|_| "Failed to serialize".to_string())));
     
     Ok(data)
 }
@@ -214,6 +267,31 @@ pub async fn get_statistics_data(
         Err(_) => 0
     };
     
+    let prev_week_end = end_date - chrono::Duration::days(7);
+    let prev_week_start = prev_week_end - chrono::Duration::days(7);
+    
+    push_log("info", "backend", format!("[get_statistics_data] Fetching previous week: {} to {}", 
+        prev_week_start.format("%Y-%m-%d"), prev_week_end.format("%Y-%m-%d")));
+    
+    let prev_week_seconds = match fetch_hours_with_cache(
+        &client,
+        base_url,
+        access_token,
+        &prev_week_start.format("%Y-%m-%d").to_string(),
+        &prev_week_end.format("%Y-%m-%d").to_string()
+    ).await {
+        Ok(data) => {
+            let seconds = data["total_seconds"].as_u64().unwrap_or(0);
+            push_log("info", "backend", format!("[get_statistics_data] Previous week: {} seconds ({:.2}h)", 
+                seconds, seconds as f64 / 3600.0));
+            seconds
+        },
+        Err(e) => {
+            push_log("error", "backend", format!("[get_statistics_data] Failed to fetch previous week: {}", e));
+            0
+        }
+    };
+    
     let hours_data = serde_json::json!({
         "weekly_stats": {
             "time_coded_seconds": total_seconds,
@@ -221,6 +299,10 @@ pub async fn get_statistics_data(
         },
         "all_time_stats": {
             "time_coded_seconds": all_time_seconds
+        },
+        "calculated_metrics": {
+            "prev_week_hours": (prev_week_seconds as f64 / 3600.0 * 10.0).round() / 10.0,
+            "prev_week_seconds": prev_week_seconds  
         }
     });
 
@@ -229,7 +311,8 @@ pub async fn get_statistics_data(
         .map_err(|e| format!("Failed to fetch streak data: {}", e))?;
 
     let mut dashboard_stats = hours_data;
-    if let Some(streak) = streak_data.get("current_streak") {
+    
+    if let Some(streak) = streak_data.get("streak_days") {
         dashboard_stats["current_streak"] = streak.clone();
     }
     if let Some(longest) = streak_data.get("longest_streak") {
@@ -246,9 +329,12 @@ pub async fn get_dashboard_stats(
     api_config: ApiConfig,
     state: State<'_, Arc<tauri::async_runtime::Mutex<AuthState>>>,
 ) -> Result<serde_json::Value, String> {
+    push_log("info", "backend", "get_dashboard_stats called".to_string());
+    
     let auth_state = state.lock().await;
 
     if !auth_state.is_authenticated {
+        push_log("error", "backend", "Not authenticated".to_string());
         return Err("Not authenticated".to_string());
     }
 
@@ -257,29 +343,41 @@ pub async fn get_dashboard_stats(
     } else {
         &api_config.base_url
     };
+    
+    push_log("info", "backend", format!("Using base URL: {}", base_url));
 
     let access_token = auth_state
         .access_token
         .as_ref()
         .ok_or("No access token available")?;
+    
+    push_log("debug", "backend", format!("Access token present: {}...", &access_token[..20.min(access_token.len())]));
 
     let client = reqwest::Client::new();
 
     
     let end_date = chrono::Utc::now().date_naive();
     let start_date = end_date - chrono::Duration::days(7);
+    
+    push_log("info", "backend", format!("Date range: {} to {}", start_date.format("%Y-%m-%d"), end_date.format("%Y-%m-%d")));
 
+    push_log("info", "backend", "Fetching current week hours...".to_string());
     let _current_week_data = fetch_hours_with_cache(
         &client,
         base_url,
         access_token,
         &start_date.format("%Y-%m-%d").to_string(),
         &end_date.format("%Y-%m-%d").to_string()
-    ).await.map_err(|e| format!("Failed to fetch current week hours: {}", e))?;
+    ).await.map_err(|e| {
+        push_log("error", "backend", format!("Failed to fetch current week hours: {}", e));
+        format!("Failed to fetch current week hours: {}", e)
+    })?;
 
     
     let prev_week_end = start_date;
     let prev_week_start = prev_week_end - chrono::Duration::days(7);
+    
+    push_log("info", "backend", format!("Fetching previous week hours: {} to {}", prev_week_start.format("%Y-%m-%d"), prev_week_end.format("%Y-%m-%d")));
     
     let prev_week_data = fetch_hours_with_cache(
         &client,
@@ -287,11 +385,16 @@ pub async fn get_dashboard_stats(
         access_token,
         &prev_week_start.format("%Y-%m-%d").to_string(),
         &prev_week_end.format("%Y-%m-%d").to_string()
-    ).await.unwrap_or_else(|_| serde_json::json!({"total_seconds": 0}));
+    ).await.unwrap_or_else(|e| {
+        push_log("warn", "backend", format!("Failed to fetch previous week hours: {}", e));
+        serde_json::json!({"total_seconds": 0})
+    });
 
     
     let mut daily_hours = serde_json::Map::new();
     let mut total_seconds = 0u64;
+    
+    push_log("info", "backend", "Fetching daily hours for last 7 days...".to_string());
     
     for days_ago in 0..7 {
         let date = end_date - chrono::Duration::days(days_ago);
@@ -302,6 +405,9 @@ pub async fn get_dashboard_stats(
             Ok(day_data) => {
                 let seconds = day_data["total_seconds"].as_u64().unwrap_or(0);
                 total_seconds += seconds;
+                
+                push_log("info", "backend", format!(" {} ({} days ago): {} seconds ({:.2} hours)", 
+                    date_str, days_ago, seconds, seconds as f64 / 3600.0));
                 
                 let day_name = match date.weekday() {
                     chrono::Weekday::Mon => "Mon",
@@ -320,7 +426,9 @@ pub async fn get_dashboard_stats(
                     "seconds": seconds
                 }));
             }
-            Err(_) => {
+            Err(e) => {
+                push_log("warn", "backend", format!("Failed to fetch hours for {}: {}", date_str, e));
+                
                 let day_name = match date.weekday() {
                     chrono::Weekday::Mon => "Mon",
                     chrono::Weekday::Tue => "Tue",
@@ -341,14 +449,22 @@ pub async fn get_dashboard_stats(
         }
     }
 
+    push_log("info", "backend", format!("Total seconds for last 7 days: {} ({:.2} hours)", total_seconds, total_seconds as f64 / 3600.0));
     
+    push_log("info", "backend", "Fetching streak data...".to_string());
     let streak_data = fetch_streak_with_cache(&client, base_url, access_token)
         .await
-        .unwrap_or_else(|_| serde_json::json!({"current_streak": 0, "longest_streak": 0}));
+        .unwrap_or_else(|e| {
+            push_log("error", "backend", format!("Failed to fetch streak data: {}", e));
+            serde_json::json!({"current_streak": 0, "longest_streak": 0})
+        });
 
     
     let current_week_seconds = total_seconds as f64;
     let prev_week_seconds = prev_week_data["total_seconds"].as_f64().unwrap_or(0.0);
+    
+    push_log("info", "backend", format!("Week comparison: Current week = {:.2}h, Previous week = {:.2}h", 
+        current_week_seconds / 3600.0, prev_week_seconds / 3600.0));
     
     
     let daily_average_hours = current_week_seconds / 3600.0 / 7.0;
@@ -364,10 +480,18 @@ pub async fn get_dashboard_stats(
     } else {
         0.0
     };
+    
+    
+    let current_streak = streak_data["streak_days"].as_u64().unwrap_or(0);
+    let longest_streak = streak_data["longest_streak"].as_u64().unwrap_or(0);
+    
+    push_log("info", "backend", format!("Streak: Current = {} days (from API field 'streak_days'), Longest = {} days", current_streak, longest_streak));
+    push_log("info", "backend", format!("Metrics: Daily average = {:.2}h, Weekly hours = {:.2}h, Weekly change = {:.1}%", 
+        daily_average_hours, weekly_hours, weekly_change_percent));
 
-    Ok(serde_json::json!({
-        "current_streak": streak_data["current_streak"].as_u64().unwrap_or(0),
-        "longest_streak": streak_data["longest_streak"].as_u64().unwrap_or(0),
+    let result = serde_json::json!({
+        "current_streak": current_streak,
+        "longest_streak": longest_streak,
         "weekly_stats": {
             "time_coded_seconds": total_seconds,
             "daily_hours": daily_hours
@@ -376,9 +500,14 @@ pub async fn get_dashboard_stats(
             "daily_average_hours": (daily_average_hours * 10.0).round() / 10.0,
             "weekly_hours": (weekly_hours * 10.0).round() / 10.0,
             "weekly_change_percent": weekly_change_percent,
-            "prev_week_hours": (prev_week_seconds / 3600.0 * 10.0).round() / 10.0
+            "prev_week_hours": (prev_week_seconds / 3600.0 * 10.0).round() / 10.0,
+            "prev_week_seconds": prev_week_seconds  
         }
-    }))
+    });
+    
+    push_log("info", "backend", format!("FINAL DASHBOARD STATS: {}", serde_json::to_string_pretty(&result).unwrap_or_else(|_| "Failed to serialize".to_string())));
+
+    Ok(result)
 }
 
 async fn process_statistics_data(
@@ -392,9 +521,22 @@ async fn process_statistics_data(
     let all_time_time = dashboard_stats["all_time_stats"]["time_coded_seconds"]
         .as_u64()
         .unwrap_or(0) as f64;
+    
+    let prev_week_time = dashboard_stats["calculated_metrics"]["prev_week_seconds"]
+        .as_f64()
+        .unwrap_or_else(|| {
+            dashboard_stats["calculated_metrics"]["prev_week_hours"]
+                .as_f64()
+                .unwrap_or(0.0) * 3600.0
+        });
+    
+    push_log("info", "backend", format!("[process_statistics_data] Using previous week: {} seconds ({:.2}h)", 
+        prev_week_time, prev_week_time / 3600.0));
+    push_log("info", "backend", format!("[process_statistics_data] Current week: {} seconds ({:.2}h)", 
+        weekly_time, weekly_time / 3600.0));
 
     
-    let trends = calculate_trends(weekly_time, current_streak).await;
+    let trends = calculate_trends(weekly_time, prev_week_time, current_streak).await;
 
     
     let charts = generate_chart_data(&dashboard_stats).await?;
@@ -413,11 +555,12 @@ async fn process_statistics_data(
     })
 }
 
-async fn calculate_trends(weekly_time: f64, current_streak: u64) -> Vec<TrendStatistic> {
+async fn calculate_trends(weekly_time: f64, prev_week_time: f64, current_streak: u64) -> Vec<TrendStatistic> {
     let mut trends = Vec::new();
 
     
-    let last_week_time = weekly_time * 0.85; 
+    
+    let last_week_time = prev_week_time;
     let last_week_streak = if current_streak > 0 {
         current_streak - 1
     } else {
@@ -425,7 +568,18 @@ async fn calculate_trends(weekly_time: f64, current_streak: u64) -> Vec<TrendSta
     };
 
     
-    let time_change = ((weekly_time - last_week_time) / last_week_time * 100.0).round() as i32;
+    let time_change = if last_week_time > 0.0 {
+        let change = ((weekly_time - last_week_time) / last_week_time * 100.0).round() as i32;
+        push_log("info", "backend", format!("[calculate_trends] Weekly change: {:.2}h -> {:.2}h = {}%", 
+            last_week_time / 3600.0, weekly_time / 3600.0, change));
+        change
+    } else if weekly_time > 0.0 {
+        push_log("info", "backend", "[calculate_trends] No previous week data, defaulting to +100%".to_string());
+        100 
+    } else {
+        push_log("info", "backend", "[calculate_trends] No data for either week, 0%".to_string());
+        0
+    };
     let time_trend = if time_change > 0 {
         TrendStatistic {
             title: "Weekly Coding Time".to_string(),
@@ -496,8 +650,15 @@ async fn calculate_trends(weekly_time: f64, current_streak: u64) -> Vec<TrendSta
 
     
     let daily_average = weekly_time / 3600.0 / 7.0;
-    let last_week_daily = daily_average * 0.9;
-    let focus_change = ((daily_average - last_week_daily) / last_week_daily * 100.0).round() as i32;
+    let last_week_daily = last_week_time / 3600.0 / 7.0;  
+    
+    let focus_change = if last_week_daily > 0.0 {
+        ((daily_average - last_week_daily) / last_week_daily * 100.0).round() as i32
+    } else if daily_average > 0.0 {
+        100  
+    } else {
+        0
+    };
 
     let focus_trend = if focus_change > 0 {
         TrendStatistic {
@@ -754,7 +915,7 @@ async fn generate_insights(
             description: "You're building your coding skills! Every hour counts.".to_string(),
             value: format!("{:.0}h total", total_hours),
             trend: "Growing skills".to_string(),
-            icon: "📚".to_string(),
+            icon: "".to_string(),
             color: "#2196F3".to_string(),
         }
     } else {
@@ -763,7 +924,7 @@ async fn generate_insights(
             description: "Every expert was once a beginner. Keep coding!".to_string(),
             value: format!("{:.0}h total", total_hours),
             trend: "Beginning journey".to_string(),
-            icon: "🌱".to_string(),
+            icon: "".to_string(),
             color: "#9C27B0".to_string(),
         }
     };
