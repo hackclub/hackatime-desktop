@@ -63,7 +63,7 @@
         welcome back, {{ userData?.emails?.[0]?.split('@')[0] || 'user' }}
       </h1>
       <p class="text-[20px] sm:text-[16px] lg:text-[20px] text-white m-0" style="font-family: 'Outfit', sans-serif;">
-        every hour brings you power.
+        {{ motd }}
       </p>
     </div>
 
@@ -161,8 +161,10 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted } from 'vue';
 import WeeklyChart from '../components/WeeklyChart.vue';
 import RandomLoader from '../components/RandomLoader.vue';
+import motdData from '../motd.json';
 
 interface AuthState {
   is_authenticated: boolean;
@@ -195,6 +197,30 @@ const emit = defineEmits<{
   handleDirectOAuthAuth: [];
   'update:directOAuthToken': [value: string];
 }>();
+
+const motd = ref<string>('');
+
+onMounted(() => {
+  motd.value = getMotd();
+});
+
+function getMotd(): string {
+  const today = new Date();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  const dateKey = `${month}-${day}`;
+
+  
+  const holidayData = (motdData.holidays as Record<string, { name: string; messages: string[] }>)[dateKey];
+  
+  if (holidayData && holidayData.messages.length > 0) {
+    
+    return holidayData.messages[Math.floor(Math.random() * holidayData.messages.length)];
+  }
+
+  
+  return motdData.regular[Math.floor(Math.random() * motdData.regular.length)];
+}
 
 async function authenticate() {
   emit('authenticate');
