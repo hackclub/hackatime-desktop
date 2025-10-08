@@ -106,17 +106,7 @@ async fn fetch_streak_with_cache(
     base_url: &str,
     access_token: &str,
 ) -> Result<serde_json::Value, String> {
-    let db = Database::new().await?;
-    let today = chrono::Utc::now().date_naive().format("%Y-%m-%d").to_string();
-    let cache_key = format!("streak:{}", today);
-    
-    if let Ok(Some(cached_data)) = db.get_cached_data(&cache_key).await {
-        push_log("debug", "backend", format!("Using cached streak data for {}", today));
-        return serde_json::from_str(&cached_data)
-            .map_err(|e| format!("Failed to parse cached streak data: {}", e));
-    }
-    
-    push_log("debug", "backend", format!("Fetching fresh streak data for {}", today));
+    push_log("info", "backend", format!("Fetching streak data from API"));
     let response = client
         .get(&format!("{}/api/v1/authenticated/streak", base_url))
         .bearer_auth(access_token)
@@ -132,10 +122,6 @@ async fn fetch_streak_with_cache(
         .json()
         .await
         .map_err(|e| format!("Failed to parse streak response: {}", e))?;
-    
-    let data_str = serde_json::to_string(&data)
-        .map_err(|e| format!("Failed to serialize streak data for caching: {}", e))?;
-    db.set_cached_data(&cache_key, &data_str, 30).await.ok();
     
     Ok(data)
 }
