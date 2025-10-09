@@ -122,7 +122,7 @@
         </div>
 
         <!-- API Access -->
-        <div v-if="apiKey" class="card-3d">
+        <div v-if="apiKey" class="card-3d ph-no-capture">
           <div class="rounded-[8px] border-2 border-black p-6 card-3d-front" style="background-color: #3D2C3E;">
             <div class="space-y-4">
               <div>

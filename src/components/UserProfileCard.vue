@@ -1,5 +1,5 @@
 <template>
-  <div class="card-3d">
+  <div class="card-3d ph-no-capture">
     <div class="rounded-[8px] border-2 border-black p-4 card-3d-front" style="background: #f9e9b5;">
       <!-- Header with User Info -->
       <div class="flex items-center gap-3 mb-3">
