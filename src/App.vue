@@ -9,6 +9,7 @@ import Home from "./views/Home.vue";
 import Projects from "./views/Projects.vue";
 import Settings from "./views/Settings.vue";
 import Statistics from "./views/Statistics.vue";
+import Login from "./views/Login.vue";
 import UserProfileCard from "./components/UserProfileCard.vue";
 import CustomTitlebar from "./components/CustomTitlebar.vue";
 import WakatimeSetupModal from "./components/WakatimeSetupModal.vue";
@@ -411,8 +412,10 @@ async function copyApiKey() {
 }
 
 
-async function handleDirectOAuthAuth() {
-  if (!directOAuthToken.value.trim()) {
+async function handleDirectOAuthAuth(token?: string) {
+  const tokenToUse = token || directOAuthToken.value;
+  
+  if (!tokenToUse.trim()) {
     alert("Please enter an OAuth authorization code or access token");
     return;
   }
@@ -420,12 +423,12 @@ async function handleDirectOAuthAuth() {
   try {
     isLoading.value = true;
     
-    console.log("Attempting direct OAuth auth with token:", directOAuthToken.value);
-    console.log("Token length:", directOAuthToken.value.length);
+    console.log("Attempting direct OAuth auth with token:", tokenToUse);
+    console.log("Token length:", tokenToUse.length);
     console.log("API config:", apiConfig.value);
     
     await invoke("authenticate_with_direct_oauth", { 
-      oauthToken: directOAuthToken.value,
+      oauthToken: tokenToUse,
       apiConfig: apiConfig.value 
     });
     
@@ -452,6 +455,11 @@ async function handleDirectOAuthAuth() {
 }
 
 async function checkForUpdatesAndInstall() {
+  if (isDevMode.value) {
+    console.info('[AUTO-UPDATE] Skipping auto-update check in development mode');
+    return;
+  }
+  
   try {
     console.info('[AUTO-UPDATE] Checking for updates...');
     const update = await check();
@@ -495,158 +503,168 @@ async function checkForUpdatesAndInstall() {
   <div class="flex flex-col h-screen text-text-primary font-sans outfit app-window" style="background-color: #322433;">
     <CustomTitlebar />
     
-    <div class="flex flex-1 overflow-hidden">
+    <!-- Show login screen when not authenticated -->
+    <div v-if="!authState.is_authenticated" class="flex-1 overflow-hidden">
+      <Login 
+        :isLoading="isLoading"
+        :isDevMode="isDevMode"
+        :oauthUrl="oauthUrl"
+        @authenticate="authenticate"
+        @handleDirectOAuthAuth="handleDirectOAuthAuth"
+        @openOAuthUrlManually="openOAuthUrlManually"
+      />
+    </div>
+    <div v-else class="flex flex-1 overflow-hidden">
       <aside class="w-64 min-w-64 flex flex-col p-0 shadow-xl relative overflow-hidden" style="background-color: #3D2C3E;">
-      <div class="absolute left-0 top-[76px] w-full pointer-events-none z-0">
-        <div class="absolute left-[63px] top-[616.5px] text-[36px] text-black opacity-20 font-light whitespace-nowrap" style="font-family: 'Outfit', sans-serif;">
-          01:55:58
-        </div>
-        
-        <img src="/src/assets/suits-icons.svg" alt="" class="absolute left-[200px] top-0 w-[84px] h-[17.778px]" />
-        
-        <img src="/src/assets/decorative-lines.svg" alt="" class="absolute left-0 top-[377px] w-[16px] h-[207px]" />
-        
-        <img src="/src/assets/decorative-lines.svg" alt="" class="absolute left-[284px] top-[377px] w-[16px] h-[207px]" />
-        
-      </div>
-      
-      <div class="relative z-10 flex flex-col h-full">
-        <div class="p-6" style="background-color: #3D2C3E;">
-          <div class="flex justify-center items-center">
-            <img src="/src/assets/bird-illustration.svg" alt="Hackatime" class="h-12 w-auto" />
+        <div class="absolute left-0 top-[76px] w-full pointer-events-none z-0">
+          <div class="absolute left-[63px] top-[616.5px] text-[36px] text-black opacity-20 font-light whitespace-nowrap" style="font-family: 'Outfit', sans-serif;">
+            01:55:58
           </div>
+          
+          <img src="/src/assets/suits-icons.svg" alt="" class="absolute left-[200px] top-0 w-[84px] h-[17.778px]" />
+          
+          <img src="/src/assets/decorative-lines.svg" alt="" class="absolute left-0 top-[377px] w-[16px] h-[207px]" />
+          
+          <img src="/src/assets/decorative-lines.svg" alt="" class="absolute left-[284px] top-[377px] w-[16px] h-[207px]" />
+          
         </div>
         
-        <nav class="flex-1 py-4 px-6 space-y-5">
-          <button 
-            @click="currentPage = 'home'" 
-            class="pushable w-full"
-            :class="currentPage === 'home' ? 'pushable-active' : 'pushable-inactive'"
-            style="font-family: 'Outfit', sans-serif;"
-          >
-            <span 
-              class="front w-full h-16 rounded-lg border-2 border-[rgba(0,0,0,0.35)] flex items-center px-4 text-xl font-bold"
-              :style="currentPage === 'home' ? 'background: linear-gradient(135deg, #E99682 0%, #EB9182 33%, #E88592 66%, #E883AE 100%); color: white;' : 'background-color: #543c55; color: white;'"
-            >
-              <svg class="w-8 h-8 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-              </svg>
-              <span class="ml-auto">home</span>
-            </span>
-          </button>
-          
-          <!-- Projects button -->
-          <button 
-            @click="currentPage = 'projects'" 
-            class="pushable w-full"
-            :class="currentPage === 'projects' ? 'pushable-active' : 'pushable-inactive'"
-            style="font-family: 'Outfit', sans-serif;"
-          >
-            <span 
-              class="front w-full h-16 rounded-lg border-2 border-[rgba(0,0,0,0.35)] flex items-center px-4 text-xl font-bold"
-              :style="currentPage === 'projects' ? 'background: linear-gradient(135deg, #E99682 0%, #EB9182 33%, #E88592 66%, #E883AE 100%); color: white;' : 'background-color: #543c55; color: white;'"
-            >
-              <svg class="w-8 h-8 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-              </svg>
-              <span class="ml-auto">projects</span>
-            </span>
-          </button>
-          
-          <!-- Statistics button (renamed from friends in Figma, keeping your existing page) -->
-          <button 
-            @click="currentPage = 'statistics'" 
-            class="pushable w-full"
-            :class="currentPage === 'statistics' ? 'pushable-active' : 'pushable-inactive'"
-            style="font-family: 'Outfit', sans-serif;"
-          >
-            <span 
-              class="front w-full h-16 rounded-lg border-2 border-[rgba(0,0,0,0.35)] flex items-center px-4 text-xl font-bold"
-              :style="currentPage === 'statistics' ? 'background: linear-gradient(135deg, #E99682 0%, #EB9182 33%, #E88592 66%, #E883AE 100%); color: white;' : 'background-color: #543c55; color: white;'"
-            >
-              <svg class="w-8 h-8 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-              </svg>
-              <span class="ml-auto">statistics</span>
-            </span>
-          </button>
-        </nav>
-        
-        <div class="p-6 mt-auto" style="background-color: #3D2C3E;">
-          <UserProfileCard 
-            v-if="authState.is_authenticated"
-            :authState="authState"
-            :userData="userData"
-            :presenceData="presenceData"
-            :apiConfig="apiConfig"
-            @openSettings="currentPage = 'settings'"
-          />
-        </div>
-      </div>
-    </aside>
-
-    <!-- Main Content Area -->
-    <main class="flex-1 p-6 overflow-y-auto min-w-0">
-      <!-- Home Page Layout -->
-      <div v-if="currentPage === 'home'" class="flex h-full gap-6 min-h-0 responsive-stack">
-        <!-- Main Home Content (Left Side - 2/3) -->
-        <div class="flex-1 flex flex-col min-w-0">
-          <Home 
-            :authState="authState"
-            :apiConfig="apiConfig"
-            :userData="userData"
-            :userStats="userStats"
-            :weeklyChartData="weeklyChartData"
-            :isLoading="isLoading"
-            :isDevMode="isDevMode"
-            :oauthUrl="oauthUrl"
-            v-model:directOAuthToken="directOAuthToken"
-            @authenticate="authenticate"
-            @handleDirectOAuthAuth="handleDirectOAuthAuth"
-            @openOAuthUrlManually="openOAuthUrlManually"
-          />
-        </div>
-
-        <!-- Leaderboard Sidebar (Right Side - 1/3) -->
-        <div v-if="authState.is_authenticated && userStats" class="w-64 min-w-64 flex flex-col responsive-full-width">
-          <div class="card-3d-app h-full">
-            <div class="rounded-[8px] border border-black p-4 card-3d-app-front h-full flex flex-col" style="background-color: #3D2C3E;">
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="text-white text-[16px] font-bold italic m-0" style="font-family: 'Outfit', sans-serif;">
-                leaderboard
-              </h2>
-              <div class="flex gap-2 text-[10px]" style="font-family: 'Outfit', sans-serif;">
-                <span class="text-white underline cursor-pointer">friends</span>
-                <span class="text-white cursor-pointer">global</span>
-              </div>
+        <div class="relative z-10 flex flex-col h-full">
+          <div class="p-6" style="background-color: #3D2C3E;">
+            <div class="flex justify-center items-center">
+              <img src="/src/assets/bird-illustration.svg" alt="Hackatime" class="h-12 w-auto" />
             </div>
-            <!-- Leaderboard content would go here -->
           </div>
+          
+          <nav class="flex-1 py-4 px-6 space-y-5">
+            <button 
+              @click="currentPage = 'home'" 
+              class="pushable w-full"
+              :class="currentPage === 'home' ? 'pushable-active' : 'pushable-inactive'"
+              style="font-family: 'Outfit', sans-serif;"
+            >
+              <span 
+                class="front w-full h-16 rounded-lg border-2 border-[rgba(0,0,0,0.35)] flex items-center px-4 text-xl font-bold"
+                :style="currentPage === 'home' ? 'background: linear-gradient(135deg, #E99682 0%, #EB9182 33%, #E88592 66%, #E883AE 100%); color: white;' : 'background-color: #543c55; color: white;'"
+              >
+                <svg class="w-8 h-8 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                </svg>
+                <span class="ml-auto">home</span>
+              </span>
+            </button>
+            
+            <!-- Projects button -->
+            <button 
+              @click="currentPage = 'projects'" 
+              class="pushable w-full"
+              :class="currentPage === 'projects' ? 'pushable-active' : 'pushable-inactive'"
+              style="font-family: 'Outfit', sans-serif;"
+            >
+              <span 
+                class="front w-full h-16 rounded-lg border-2 border-[rgba(0,0,0,0.35)] flex items-center px-4 text-xl font-bold"
+                :style="currentPage === 'projects' ? 'background: linear-gradient(135deg, #E99682 0%, #EB9182 33%, #E88592 66%, #E883AE 100%); color: white;' : 'background-color: #543c55; color: white;'"
+              >
+                <svg class="w-8 h-8 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                </svg>
+                <span class="ml-auto">projects</span>
+              </span>
+            </button>
+            
+            <!-- Statistics button (renamed from friends in Figma, keeping your existing page) -->
+            <button 
+              @click="currentPage = 'statistics'" 
+              class="pushable w-full"
+              :class="currentPage === 'statistics' ? 'pushable-active' : 'pushable-inactive'"
+              style="font-family: 'Outfit', sans-serif;"
+            >
+              <span 
+                class="front w-full h-16 rounded-lg border-2 border-[rgba(0,0,0,0.35)] flex items-center px-4 text-xl font-bold"
+                :style="currentPage === 'statistics' ? 'background: linear-gradient(135deg, #E99682 0%, #EB9182 33%, #E88592 66%, #E883AE 100%); color: white;' : 'background-color: #543c55; color: white;'"
+              >
+                <svg class="w-8 h-8 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                <span class="ml-auto">statistics</span>
+              </span>
+            </button>
+          </nav>
+          
+          <div class="p-6 mt-auto" style="background-color: #3D2C3E;">
+            <UserProfileCard 
+              :authState="authState"
+              :userData="userData"
+              :presenceData="presenceData"
+              :apiConfig="apiConfig"
+              @openSettings="currentPage = 'settings'"
+            />
           </div>
         </div>
-      </div>
-      
-      <!-- Statistics Page Layout (full page) -->
-      <div v-else-if="currentPage === 'statistics'" class="flex flex-col h-full">
-        <Statistics :apiConfig="apiConfig" />
-      </div>
+      </aside>
 
-      <!-- Settings Page Layout (no outer card) -->
-      <div v-else-if="currentPage === 'settings'" class="flex flex-col h-full">
-        <Settings 
-          :apiKey="apiKey" 
-          v-model:showApiKey="showApiKey" 
-          @copyApiKey="copyApiKey" 
-          @logout="logout" 
-          @checkWakatimeConfig="openWakatimeConfigModal"
-        />
-      </div>
+      <!-- Main Content Area -->
+      <main class="flex-1 p-6 overflow-y-auto min-w-0">
+        <!-- Home Page Layout -->
+        <div v-if="currentPage === 'home'" class="flex h-full gap-6 min-h-0 responsive-stack">
+          <!-- Main Home Content (Left Side - 2/3) -->
+          <div class="flex-1 flex flex-col min-w-0">
+            <Home 
+              :authState="authState"
+              :apiConfig="apiConfig"
+              :userData="userData"
+              :userStats="userStats"
+              :weeklyChartData="weeklyChartData"
+              :isLoading="isLoading"
+              :isDevMode="isDevMode"
+              :oauthUrl="oauthUrl"
+              v-model:directOAuthToken="directOAuthToken"
+              @authenticate="authenticate"
+              @handleDirectOAuthAuth="handleDirectOAuthAuth"
+              @openOAuthUrlManually="openOAuthUrlManually"
+            />
+          </div>
 
-      <!-- Projects Page Layout -->
-      <div v-else class="flex flex-col h-full">
-        <Projects :apiConfig="apiConfig" />
-      </div>
-    </main>
+          <!-- Leaderboard Sidebar (Right Side - 1/3) -->
+          <div v-if="authState.is_authenticated && userStats" class="w-64 min-w-64 flex flex-col responsive-full-width">
+            <div class="card-3d-app h-full">
+              <div class="rounded-[8px] border border-black p-4 card-3d-app-front h-full flex flex-col" style="background-color: #3D2C3E;">
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="text-white text-[16px] font-bold italic m-0" style="font-family: 'Outfit', sans-serif;">
+                  leaderboard
+                </h2>
+                <div class="flex gap-2 text-[10px]" style="font-family: 'Outfit', sans-serif;">
+                  <span class="text-white underline cursor-pointer">friends</span>
+                  <span class="text-white cursor-pointer">global</span>
+                </div>
+              </div>
+              <!-- Leaderboard content would go here -->
+            </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Statistics Page Layout (full page) -->
+        <div v-else-if="currentPage === 'statistics'" class="flex flex-col h-full">
+          <Statistics :apiConfig="apiConfig" />
+        </div>
+
+        <!-- Settings Page Layout (no outer card) -->
+        <div v-else-if="currentPage === 'settings'" class="flex flex-col h-full">
+          <Settings 
+            :apiKey="apiKey" 
+            v-model:showApiKey="showApiKey" 
+            @copyApiKey="copyApiKey" 
+            @logout="logout" 
+            @checkWakatimeConfig="openWakatimeConfigModal"
+          />
+        </div>
+
+        <!-- Projects Page Layout -->
+        <div v-else class="flex flex-col h-full">
+          <Projects :apiConfig="apiConfig" />
+        </div>
+      </main>
     </div>
 
     <!-- Configuration Modal -->
