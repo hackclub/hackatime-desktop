@@ -13,6 +13,8 @@ import Login from "./views/Login.vue";
 import UserProfileCard from "./components/UserProfileCard.vue";
 import CustomTitlebar from "./components/CustomTitlebar.vue";
 import WakatimeSetupModal from "./components/WakatimeSetupModal.vue";
+import UpdateNotification from "./components/UpdateNotification.vue";
+import UpdateModal from "./components/UpdateModal.vue";
 
 if (!(window as any).__hackatimeConsoleWrapped) {
   (window as any).__hackatimeConsoleWrapped = true;
@@ -69,6 +71,13 @@ const showWakatimeSetupModal = ref(false);
 const wakatimeConfigCheck = ref<any>(null);
 const hasCheckedConfigThisSession = ref(false);
 
+const updateAvailable = ref(false);
+const updateVersion = ref<string>('');
+const updateData = ref<any>(null);
+const showUpdateModal = ref(false);
+const isInstallingUpdate = ref(false);
+const currentVersion = ref<string>('1.5.1');
+
 
 const weeklyChartData = computed(() => {
   if (!userStats.value?.weekly_stats?.daily_hours) {
@@ -102,6 +111,13 @@ onMounted(async () => {
   await loadAuthState();
   await loadApiConfig();
   await loadHackatimeInfo();
+  
+  try {
+    const appVersion = await invoke("get_app_version") as string;
+    currentVersion.value = appVersion;
+  } catch (error) {
+    console.warn("Failed to get app version:", error);
+  }
   
   isDevMode.value = apiConfig.value.base_url.includes('localhost') || 
                     apiConfig.value.base_url.includes('127.0.0.1') ||
@@ -466,36 +482,65 @@ async function checkForUpdatesAndInstall() {
     
     if (update) {
       console.info(`[AUTO-UPDATE] Update available: ${update.version}`);
-      console.info('[AUTO-UPDATE] Downloading and installing update...');
-      
-      let downloaded = 0;
-      let contentLength = 0;
-      
-      await update.downloadAndInstall((event) => {
-        switch (event.event) {
-          case 'Started':
-            contentLength = event.data.contentLength ?? 0;
-            console.info(`[AUTO-UPDATE] Started downloading ${event.data.contentLength} bytes`);
-            break;
-          case 'Progress':
-            downloaded += event.data.chunkLength;
-            const percentage = contentLength > 0 ? Math.round((downloaded / contentLength) * 100) : 0;
-            console.info(`[AUTO-UPDATE] Download progress: ${percentage}% (${downloaded} / ${contentLength} bytes)`);
-            break;
-          case 'Finished':
-            console.info('[AUTO-UPDATE] Download finished');
-            break;
-        }
-      });
-      
-      console.info('[AUTO-UPDATE] Update installed successfully. Restarting app...');
-      await relaunch();
+      updateData.value = update;
+      updateVersion.value = update.version;
+      updateAvailable.value = true;
     } else {
       console.info('[AUTO-UPDATE] No updates available - app is up to date');
     }
   } catch (error) {
     console.error('[AUTO-UPDATE] Auto-update check failed:', error);
   }
+}
+
+async function installUpdate() {
+  if (!updateData.value || isInstallingUpdate.value) return;
+  
+  try {
+    isInstallingUpdate.value = true;
+    console.info('[AUTO-UPDATE] Downloading and installing update...');
+    
+    let downloaded = 0;
+    let contentLength = 0;
+    
+    await updateData.value.downloadAndInstall((event: any) => {
+      switch (event.event) {
+        case 'Started':
+          contentLength = event.data.contentLength ?? 0;
+          console.info(`[AUTO-UPDATE] Started downloading ${event.data.contentLength} bytes`);
+          break;
+        case 'Progress':
+          downloaded += event.data.chunkLength;
+          const percentage = contentLength > 0 ? Math.round((downloaded / contentLength) * 100) : 0;
+          console.info(`[AUTO-UPDATE] Download progress: ${percentage}% (${downloaded} / ${contentLength} bytes)`);
+          break;
+        case 'Finished':
+          console.info('[AUTO-UPDATE] Download finished');
+          break;
+      }
+    });
+    
+    console.info('[AUTO-UPDATE] Update installed successfully. Restarting app...');
+    await relaunch();
+  } catch (error) {
+    console.error('[AUTO-UPDATE] Update installation failed:', error);
+    alert('Failed to install update: ' + error);
+    isInstallingUpdate.value = false;
+  }
+}
+
+function dismissUpdate() {
+  updateAvailable.value = false;
+  showUpdateModal.value = false;
+}
+
+function showMoreInfo() {
+  showUpdateModal.value = true;
+}
+
+async function handleInstallNow() {
+  showUpdateModal.value = false;
+  await installUpdate();
 }
 </script>
 
@@ -698,6 +743,27 @@ async function checkForUpdatesAndInstall() {
       @applied="handleWakatimeConfigApplied"
     />
   </div>
+
+  <!-- Update components teleported to body to avoid layout issues -->
+  <Teleport to="body">
+    <!-- Update Notification -->
+    <UpdateNotification
+      v-if="updateAvailable && !showUpdateModal"
+      :version="updateVersion"
+      @installNow="handleInstallNow"
+      @moreInfo="showMoreInfo"
+      @dismiss="dismissUpdate"
+    />
+
+    <!-- Update Modal -->
+    <UpdateModal
+      v-if="showUpdateModal"
+      :version="updateVersion"
+      :current-version="currentVersion"
+      @installNow="handleInstallNow"
+      @installLater="showUpdateModal = false"
+    />
+  </Teleport>
 </template>
 
 <style scoped>
