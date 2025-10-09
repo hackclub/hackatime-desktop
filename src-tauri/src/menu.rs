@@ -4,13 +4,13 @@ use crate::push_log;
 
 pub fn setup_app_menu(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     
-    let about_quit = MenuItem::with_id(app, "quit", "Quit Hackatime", true, None::<&str>)?;
+    let quit_item = PredefinedMenuItem::quit(app, Some("Quit Hackatime"))?;
     let about_menu = Submenu::with_items(
         app,
-        "About",
+        "Hackatime",
         true,
         &[
-            &about_quit,
+            &quit_item,
         ],
     )?;
 
@@ -62,7 +62,6 @@ pub fn setup_app_menu(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>>
     
     app.on_menu_event(|app, event| {
         match event.id.as_ref() {
-            "quit" => app.exit(0),
             "show" => {
                 if let Some(window) = app.get_webview_window("main") {
                     let _ = window.show();

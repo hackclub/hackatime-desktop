@@ -61,6 +61,24 @@ fn get_recent_logs() -> Vec<LogEntry> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
+            push_log("info", "backend", format!("Single instance detected. Args: {:?}, CWD: {}", args, cwd));
+            
+            // Show the existing window
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+                push_log("info", "backend", "Brought existing window to front".to_string());
+            }
+            
+            // Process any deep links from the new instance attempt
+            for arg in args {
+                if arg.starts_with("hackatime://") {
+                    push_log("info", "backend", format!("Processing deep link from second instance: {}", arg));
+                    handle_oauth_callback(&app, &arg);
+                }
+            }
+        }))
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
@@ -149,33 +167,34 @@ pub fn run() {
                 
                 #[cfg(target_os = "macos")]
                 {
-                    window.set_title_bar_style(TitleBarStyle::Transparent).unwrap();
+                    use objc2::runtime::AnyObject;
+                    use objc2_app_kit::NSColor;
+                    use objc2::msg_send;
                     
+                    if let Err(e) = window.set_title_bar_style(TitleBarStyle::Transparent) {
+                        push_log("error", "backend", format!("Failed to set title bar style: {}", e));
+                    }
                     
-                    #[allow(deprecated)]
-                    #[allow(unexpected_cfgs)]
-                    {
-                        use cocoa::appkit::{NSColor, NSWindow};
-                        use cocoa::base::{id, nil};
-
-                        let ns_window = window.ns_window().unwrap() as id;
+                    // Apply macOS-specific window styling with proper error handling
+                    if let Ok(ns_win) = window.ns_window() {
+                        let ns_window = ns_win as *mut AnyObject;
                         unsafe {
-                            use objc::{msg_send, sel, sel_impl};
-                            use objc::runtime::NO;
+                            let clear_color = NSColor::clearColor();
+                            let _: () = msg_send![ns_window, setBackgroundColor: &*clear_color];
+                            let _: () = msg_send![ns_window, setOpaque: false];
                             
-                            
-                        let bg_color = NSColor::clearColor(nil);
-                        ns_window.setBackgroundColor_(bg_color);
-                        
-                        ns_window.setOpaque_(NO);
-                            
-                            let content_view: id = msg_send![ns_window, contentView];
+                            let content_view: *mut AnyObject = msg_send![ns_window, contentView];
                             let _: () = msg_send![content_view, setWantsLayer: true];
                             
-                            let layer: id = msg_send![content_view, layer];
+                            let layer: *mut AnyObject = msg_send![content_view, layer];
                             let _: () = msg_send![layer, setCornerRadius: 12.0f64];
                             let _: () = msg_send![layer, setMasksToBounds: true];
+                            
+                            let _: () = msg_send![layer, setNeedsDisplayOnBoundsChange: true];
                         }
+                        push_log("info", "backend", "✅ macOS window styling applied".to_string());
+                    } else {
+                        push_log("error", "backend", "Failed to get NSWindow".to_string());
                     }
                 }
             }
@@ -224,7 +243,7 @@ pub fn run() {
             });
             
             
-            #[cfg(any(target_os = "linux", all(debug_assertions, target_os = "windows")))]
+            #[cfg(any(target_os = "linux", target_os = "windows"))]
             {
                 app.deep_link().register_all().unwrap_or_else(|e| {
                 push_log("error", "backend", format!("Failed to register deep links: {}", e));
@@ -236,14 +255,29 @@ pub fn run() {
             
             
             if let Some(window) = app.get_webview_window("main") {
-                let window_handle = window.clone();
-                let _ = window.on_window_event(move |event| {
+                let app_handle = app.handle().clone();
+                window.on_window_event(move |event| {
                     match event {
                         WindowEvent::CloseRequested { api, .. } => {
                             push_log("info", "backend", "🪟 Window close requested - hiding to tray".to_string());
                             api.prevent_close();
-                            let _ = window_handle.hide();
-                            push_log("info", "backend", "✅ Window hidden to tray".to_string());
+                            
+                            // Use the app handle to get the window and hide it asynchronously
+                            // This prevents potential re-entrancy issues
+                            let app_clone = app_handle.clone();
+                            std::thread::spawn(move || {
+                                if let Some(win) = app_clone.get_webview_window("main") {
+                                    let _ = win.hide();
+                                    push_log("info", "backend", "✅ Window hidden to tray".to_string());
+                                }
+                            });
+                        }
+                        WindowEvent::Resized(_) => {
+                            // Handle resize events gracefully - no action needed
+                            // This prevents potential crashes on macOS with transparent windows
+                        }
+                        WindowEvent::Moved(_) => {
+                            // Handle move events gracefully
                         }
                         _ => {}
                     }
