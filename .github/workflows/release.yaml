@@ -157,6 +157,22 @@ jobs:
           GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
           TAURI_SIGNING_PRIVATE_KEY: '${{ secrets.TAURI_PRIVATE_KEY }}'
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: '${{ secrets.TAURI_KEY_PASSWORD }}'
+      - name: Sign files with Trusted Signing
+        if: 'startsWith(matrix.platform, ''windows'')'
+        uses: azure/trusted-signing-action@v0.5.1
+        with:
+          azure-tenant-id: '${{ secrets.AZURE_TENANT_ID }}'
+          azure-client-id: '${{ secrets.AZURE_CLIENT_ID }}'
+          azure-client-secret: '${{ secrets.AZURE_CLIENT_SECRET }}'
+          endpoint: 'https://eus.codesigning.azure.net/'
+          trusted-signing-account-name: hackclub
+          certificate-profile-name: hackatime-desktop
+          files-folder: '${{ github.workspace }}/src-tauri/target/release/bundle'
+          files-folder-filter: 'msi,exe'
+          files-folder-recurse: true
+          file-digest: SHA256
+          timestamp-rfc3161: 'http://timestamp.acs.microsoft.com'
+          timestamp-digest: SHA256
       - name: Attest macOS binaries
         if: 'startsWith(matrix.platform, ''macos'')'
         uses: actions/attest-build-provenance@v3
