@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.2](https://github.com/hackclub/hackatime-desktop/compare/app-v1.6.1...app-v1.6.2) (2025-10-09)
+
+
+### 🐛 Bugfixes
+
+* resolve sentry error reports and improve data validation ([8171e05](https://github.com/hackclub/hackatime-desktop/commit/8171e059ae52aefa180c9c295ab71ba23c3e111f))
+
 ## [1.6.1](https://github.com/hackclub/hackatime-desktop/compare/app-v1.6.0...app-v1.6.1) (2025-10-09)
 
 
