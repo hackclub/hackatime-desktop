@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/hackclub/hackatime-desktop/compare/app-v1.5.0...app-v1.5.1) (2025-10-09)
+
+
+### 🐛 Bugfixes
+
+* make timeout asisignable to number ([50af8ae](https://github.com/hackclub/hackatime-desktop/commit/50af8ae2ca8bee2ef2ae02a2fd26717b1ab31ca7))
+
 ## [1.5.0](https://github.com/hackclub/hackatime-desktop/compare/app-v1.4.2...app-v1.5.0) (2025-10-09)
 
 
