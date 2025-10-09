@@ -14,7 +14,7 @@
           <div class="font-bold text-[15px] leading-tight truncate" style="color: #594d37; font-family: 'Outfit', sans-serif;">
             {{ userName }}
           </div>
-          <div class="text-[10px] font-semibold uppercase tracking-wider opacity-70 mt-0.5" style="color: #594d37; font-family: 'Outfit', sans-serif;">
+          <div v-if="!isLoading && sessionState.is_active" class="text-[10px] font-semibold uppercase tracking-wider opacity-70 mt-0.5" style="color: #594d37; font-family: 'Outfit', sans-serif;">
             Coding Now
           </div>
         </div>
