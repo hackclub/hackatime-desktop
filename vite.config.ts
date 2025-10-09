@@ -14,6 +14,20 @@ export default defineConfig(async () => ({
     __SENTRY_ENVIRONMENT__: JSON.stringify(process.env.SENTRY_ENVIRONMENT || 'development'),
   },
   
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-vue': ['vue', 'vue-chartjs'],
+          'vendor-sentry': ['@sentry/vue'],
+          'vendor-charts': ['chart.js'],
+          'vendor-tauri': ['@tauri-apps/api', '@tauri-apps/plugin-deep-link', '@tauri-apps/plugin-opener', '@tauri-apps/plugin-process', '@tauri-apps/plugin-updater'],
+          'vendor-posthog': ['posthog-js'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 600,
+  },
   
   clearScreen: false,
   

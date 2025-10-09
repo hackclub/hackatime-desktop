@@ -144,7 +144,7 @@ const sessionState = ref<SessionState>({
 });
 
 const isLoading = ref(true);
-let sessionRefreshInterval: number | null = null;
+let sessionRefreshInterval: ReturnType<typeof setInterval> | null = null;
 
 
 const userEmail = computed(() => {
