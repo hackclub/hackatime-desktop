@@ -39,7 +39,7 @@
             v-model="searchQuery"
             type="text" 
             placeholder="Search projects..."
-            class="w-full p-3 pl-10 bg-[#3D2C3E] border-2 border-black rounded-lg text-white text-base box-border focus:outline-none focus:border-[#E99682] transition-colors"
+            class="w-full p-3 pl-10 bg-[#3D2C3E] border border-black rounded-lg text-white text-base box-border focus:outline-none focus:border-[#E99682] transition-colors"
             style="font-family: 'Outfit', sans-serif;"
           />
           <svg class="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -133,7 +133,7 @@
             class="card-3d"
             @click="selectProject(project)"
           >
-            <div class="rounded-[8px] border-2 border-black p-4 card-3d-front cursor-pointer hover:bg-[#4a3a4b] transition-colors" style="background-color: #3D2C3E;">
+            <div class="rounded-[8px] border border-black p-4 card-3d-front cursor-pointer hover:bg-[#4a3a4b] transition-colors" style="background-color: #3D2C3E;">
               <div class="flex justify-between items-start mb-3">
                 <div class="flex-1 min-w-0">
                   <h4 class="text-white font-semibold text-lg mb-1 truncate" style="font-family: 'Outfit', sans-serif;">{{ project.name }}</h4>
@@ -219,7 +219,7 @@
       @click="closeModal"
     >
       <div class="card-3d max-w-3xl w-full max-h-[90vh]" @click.stop>
-        <div class="rounded-[8px] border-2 border-black card-3d-front flex flex-col max-h-[90vh]" style="background-color: #3D2C3E;">
+        <div class="rounded-[8px] border border-black card-3d-front flex flex-col max-h-[90vh]" style="background-color: #3D2C3E;">
           <!-- Modal Header -->
           <div class="p-6 border-b border-[rgba(0,0,0,0.2)] flex-shrink-0">
             <div class="flex items-start justify-between mb-3">

@@ -12,7 +12,7 @@
 
     <!-- Statistics Dashboard in 3D card style -->
     <div class="card-3d card-3d-stats">
-      <div class="rounded-[8px] border-2 border-black p-6 card-3d-front" style="background-color: #3D2C3E;">
+      <div class="rounded-[8px] border border-black p-6 card-3d-front" style="background-color: #3D2C3E;">
         <StatisticsDashboard :apiConfig="apiConfig" />
       </div>
     </div>

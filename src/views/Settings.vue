@@ -17,7 +17,7 @@
 
         <!-- Preferences -->
         <div class="card-3d flex-1 min-h-0">
-          <div class="rounded-[8px] border-2 border-black p-6 card-3d-front h-full" style="background-color: #3D2C3E;">
+          <div class="rounded-[8px] border border-black p-6 card-3d-front h-full" style="background-color: #3D2C3E;">
             <div class="space-y-5">
               <div class="flex items-center justify-between">
                 <div>
@@ -58,7 +58,7 @@
       <div class="flex flex-col gap-6 min-h-0">
         <!-- About -->
         <div class="card-3d">
-          <div class="rounded-[8px] border-2 border-black p-6 card-3d-front" style="background-color: #3D2C3E;">
+          <div class="rounded-[8px] border border-black p-6 card-3d-front" style="background-color: #3D2C3E;">
             <div class="space-y-3">
               <div class="flex justify-between">
                 <span class="text-text-secondary">Version</span>
@@ -90,7 +90,7 @@
                   </button>
                 </div>
               </div>
-              <div v-if="updateInfo" class="mt-4 p-4 rounded-lg border-2 border-black" style="background-color: #2A1F2B;">
+              <div v-if="updateInfo" class="mt-4 p-4 rounded-lg border border-black" style="background-color: #2A1F2B;">
                 <div class="space-y-2">
                   <div class="flex justify-between">
                     <span class="text-text-secondary text-sm">New Version</span>
@@ -123,7 +123,7 @@
 
         <!-- API Access -->
         <div v-if="apiKey" class="card-3d ph-no-capture">
-          <div class="rounded-[8px] border-2 border-black p-6 card-3d-front" style="background-color: #3D2C3E;">
+          <div class="rounded-[8px] border border-black p-6 card-3d-front" style="background-color: #3D2C3E;">
             <div class="space-y-4">
               <div>
                 <h4 class="font-medium text-text-primary mb-2">Your API Key</h4>
@@ -133,10 +133,10 @@
                     :type="showApiKey ? 'text' : 'password'" 
                     :value="apiKey" 
                     readonly 
-                    class="flex-1 p-3 bg-[rgba(50,36,51,0.15)] border-2 border-[rgba(50,36,51,0.25)] rounded-xl text-text-primary font-mono text-sm min-w-0 break-all"
+                    class="flex-1 p-3 bg-[rgba(50,36,51,0.15)] border border-[rgba(50,36,51,0.25)] rounded-xl text-text-primary font-mono text-sm min-w-0 break-all"
                   />
                   <div class="flex gap-2 flex-shrink-0">
-                    <button @click="$emit('update:showApiKey', !showApiKey)" class="p-3 border-2 border-[rgba(50,36,51,0.25)] rounded-xl cursor-pointer text-sm min-w-11 transition-all duration-200 bg-[rgba(50,36,51,0.15)] text-text-secondary hover:bg-bg-primary hover:text-text-primary hover:border-accent-primary">
+                    <button @click="$emit('update:showApiKey', !showApiKey)" class="p-3 border border-[rgba(50,36,51,0.25)] rounded-xl cursor-pointer text-sm min-w-11 transition-all duration-200 bg-[rgba(50,36,51,0.15)] text-text-secondary hover:bg-bg-primary hover:text-text-primary hover:border-accent-primary">
                       <svg v-if="showApiKey" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L8.464 8.464M9.878 9.878L12 12m-2.122-2.122l1.415 1.415M12 12l2.122 2.122m-2.122-2.122L12 12m2.122 2.122l-1.415-1.415M12 12l-2.122-2.122"></path>
                       </svg>
@@ -159,7 +159,7 @@
 
         <!-- WakaTime Configuration -->
         <div class="card-3d">
-          <div class="rounded-[8px] border-2 border-black p-6 card-3d-front" style="background-color: #3D2C3E;">
+          <div class="rounded-[8px] border border-black p-6 card-3d-front" style="background-color: #3D2C3E;">
             <div class="flex items-center justify-between">
               <div>
                 <h4 class="font-medium text-text-primary mb-1">Setup</h4>
@@ -177,7 +177,7 @@
 
         <!-- Cache Management -->
         <div class="card-3d">
-          <div class="rounded-[8px] border-2 border-black p-6 card-3d-front" style="background-color: #3D2C3E;">
+          <div class="rounded-[8px] border border-black p-6 card-3d-front" style="background-color: #3D2C3E;">
             <div class="flex items-center justify-between">
               <div>
                 <h4 class="font-medium text-text-primary mb-1">Statistics Cache</h4>
@@ -196,7 +196,7 @@
 
         <!-- Account -->
         <div class="card-3d">
-          <div class="rounded-[8px] border-2 border-black p-6 card-3d-front" style="background-color: #3D2C3E;">
+          <div class="rounded-[8px] border border-black p-6 card-3d-front" style="background-color: #3D2C3E;">
             <div class="flex items-center justify-between">
               <div>
                 <h4 class="font-medium text-text-primary mb-1">Sign Out</h4>
@@ -217,7 +217,7 @@
     <!-- Debug Modal -->
     <div v-if="showDebugModal" class="modal-backdrop" @click="showDebugModal = false">
       <div class="modal-card-3d" @click.stop>
-        <div class="rounded-[8px] border-2 border-black p-6 modal-card-3d-front" style="background-color: #3D2C3E;">
+        <div class="rounded-[8px] border border-black p-6 modal-card-3d-front" style="background-color: #3D2C3E;">
           <div class="flex items-start justify-between mb-4">
             <h3 class="text-white text-[16px] font-bold italic m-0" style="font-family: 'Outfit', sans-serif;">debug console</h3>
             <div class="flex items-center gap-3">

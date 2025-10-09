@@ -38,7 +38,7 @@
     <div>
       <h2 class="text-xl font-semibold text-text-primary mb-8">Your Programmer Class</h2>
       <div class="card-3d mt-4">
-        <div class="rounded-[8px] border-2 border-black p-6 card-3d-front" style="background-color: #3D2C3E;">
+        <div class="rounded-[8px] border border-black p-6 card-3d-front" style="background-color: #3D2C3E;">
         <div class="flex items-center justify-between mb-4">
           <div>
             <h3 class="text-2xl font-bold text-text-primary">{{ statisticsData.programmer_class.class_name }}</h3>

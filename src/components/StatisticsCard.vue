@@ -1,6 +1,6 @@
 <template>
   <div class="card-3d">
-    <div class="rounded-[8px] border-2 border-black p-6 card-3d-front h-full flex flex-col" style="background-color: #3D2C3E;">
+    <div class="rounded-[8px] border border-black p-6 card-3d-front h-full flex flex-col" style="background-color: #3D2C3E;">
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold text-text-primary">{{ title }}</h3>
       <div class="text-2xl">{{ icon }}</div>
