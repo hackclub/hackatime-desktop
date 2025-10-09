@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/hackclub/hackatime-desktop/compare/app-v1.4.0...app-v1.4.1) (2025-10-09)
+
+
+### 👽 Miscellaneous
+
+* **ci:** add azure trusted signing ([b86c9c7](https://github.com/hackclub/hackatime-desktop/commit/b86c9c715a0e8a9e6a8ad7b67bca6f354474b1ad))
+
 ## [1.4.0](https://github.com/hackclub/hackatime-desktop/compare/app-v1.3.2...app-v1.4.0) (2025-10-09)
 
 
