@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.6.0](https://github.com/hackclub/hackatime-desktop/compare/app-v1.5.1...app-v1.6.0) (2025-10-09)
+
+
+### ✨ Features
+
+* add filters and search bar to project page ([93e8fb6](https://github.com/hackclub/hackatime-desktop/commit/93e8fb655ba23b11cda9bfb8ee8e368a9ccfa6b7))
+* add update card ([e6aacf5](https://github.com/hackclub/hackatime-desktop/commit/e6aacf5f4d4c21f3863f342c8000a32ccc3e1d01))
+
+
+### 🐛 Bugfixes
+
+* change border style for consistency ([7516012](https://github.com/hackclub/hackatime-desktop/commit/7516012de4244843af1fb58144acd09b13ddd8a9))
+
 ## [1.5.1](https://github.com/hackclub/hackatime-desktop/compare/app-v1.5.0...app-v1.5.1) (2025-10-09)
 
 
