@@ -128,26 +128,26 @@
       <div class="flex-1 overflow-y-auto min-h-0" ref="scrollContainer">
         <div class="grid gap-4 pt-2 pb-4">
           <div 
-            v-for="project in paginatedProjects" 
-            :key="project.name"
+            v-for="(project, index) in paginatedProjects" 
+            :key="`${project?.name || 'unnamed'}-${index}`"
             class="card-3d"
             @click="selectProject(project)"
           >
             <div class="rounded-[8px] border border-black p-4 card-3d-front cursor-pointer hover:bg-[#4a3a4b] transition-colors" style="background-color: #3D2C3E;">
               <div class="flex justify-between items-start mb-3">
                 <div class="flex-1 min-w-0">
-                  <h4 class="text-white font-semibold text-lg mb-1 truncate" style="font-family: 'Outfit', sans-serif;">{{ project.name }}</h4>
+                  <h4 class="text-white font-semibold text-lg mb-1 truncate" style="font-family: 'Outfit', sans-serif;">{{ project?.name || 'Unnamed' }}</h4>
                   <div class="flex items-center gap-4 text-sm text-white/60 flex-wrap" style="font-family: 'Outfit', sans-serif;">
-                    <span>{{ (project.total_heartbeats || 0).toLocaleString() }} heartbeats</span>
-                    <span>{{ formatDuration(project.total_seconds || 0) }}</span>
-                    <span v-if="project.recent_activity_seconds && project.recent_activity_seconds > 0" class="text-[#E99682] font-medium">
+                    <span>{{ ((project?.total_heartbeats ?? 0)).toLocaleString() }} heartbeats</span>
+                    <span>{{ formatDuration(project?.total_seconds ?? 0) }}</span>
+                    <span v-if="project?.recent_activity_seconds && project.recent_activity_seconds > 0" class="text-[#E99682] font-medium">
                       Active recently
                     </span>
                   </div>
                 </div>
                 <div class="text-right flex-shrink-0">
                   <div class="text-xl font-bold text-[#E99682]" style="font-family: 'Outfit', sans-serif;">
-                    {{ ((project.total_seconds || 0) / 3600).toFixed(1) }}h
+                    {{ ((project?.total_seconds ?? 0) / 3600).toFixed(1) }}h
                   </div>
                 </div>
               </div>
@@ -155,28 +155,28 @@
               <!-- Languages and Editors -->
               <div class="flex flex-wrap gap-2 mb-3">
                 <span 
-                  v-for="language in (project.languages || []).slice(0, 3)" 
-                  :key="language"
+                  v-for="(language, langIndex) in (project?.languages || []).slice(0, 3)" 
+                  :key="`${project?.name}-lang-${langIndex}-${language}`"
                   class="px-2 py-1 bg-[rgba(233,150,130,0.15)] text-[#E99682] text-xs rounded-md font-medium"
                   style="font-family: 'Outfit', sans-serif;"
                 >
                   {{ language }}
                 </span>
                 <span 
-                  v-if="(project.languages || []).length > 3"
+                  v-if="(project?.languages || []).length > 3"
                   class="px-2 py-1 bg-[rgba(50,36,51,0.15)] text-white/60 text-xs rounded-md"
                   style="font-family: 'Outfit', sans-serif;"
                 >
-                  +{{ (project.languages || []).length - 3 }} more
+                  +{{ (project?.languages || []).length - 3 }} more
                 </span>
               </div>
 
               <!-- Time Range -->
               <div class="text-xs text-white/50" style="font-family: 'Outfit', sans-serif;">
-                <span v-if="project.first_heartbeat">
+                <span v-if="project?.first_heartbeat">
                   First: {{ formatDate(project.first_heartbeat) }}
                 </span>
-                <span v-if="project.last_heartbeat" class="ml-4">
+                <span v-if="project?.last_heartbeat" class="ml-4">
                   Last: {{ formatDate(project.last_heartbeat) }}
                 </span>
               </div>
@@ -225,11 +225,11 @@
             <div class="flex items-start justify-between mb-3">
               <div class="flex-1 min-w-0">
                 <h2 class="text-3xl font-bold text-white m-0 mb-2 truncate" style="font-family: 'Outfit', sans-serif;">
-                  {{ selectedProject.name }}
+                  {{ selectedProject?.name || 'Unnamed' }}
                 </h2>
                 <div class="flex items-center gap-4 text-white/60 flex-wrap" style="font-family: 'Outfit', sans-serif;">
-                  <span class="text-base">{{ (selectedProject.total_heartbeats || 0).toLocaleString() }} heartbeats</span>
-                  <span v-if="selectedProject.recent_activity_seconds && selectedProject.recent_activity_seconds > 0" class="px-2 py-1 bg-[rgba(233,150,130,0.2)] text-[#E99682] text-sm rounded-md font-medium">
+                  <span class="text-base">{{ ((selectedProject?.total_heartbeats ?? 0)).toLocaleString() }} heartbeats</span>
+                  <span v-if="selectedProject?.recent_activity_seconds && selectedProject.recent_activity_seconds > 0" class="px-2 py-1 bg-[rgba(233,150,130,0.2)] text-[#E99682] text-sm rounded-md font-medium">
                     Active recently
                   </span>
                 </div>
@@ -252,17 +252,17 @@
               <div class="bg-[rgba(42,31,43,0.5)] border-2 border-[rgba(0,0,0,0.3)] rounded-lg p-4">
                 <div class="text-white/60 text-sm mb-1" style="font-family: 'Outfit', sans-serif;">Total Time</div>
                 <div class="text-3xl font-bold text-white" style="font-family: 'Outfit', sans-serif;">
-                  {{ ((selectedProject.total_seconds || 0) / 3600).toFixed(1) }}h
+                  {{ ((selectedProject?.total_seconds ?? 0) / 3600).toFixed(1) }}h
                 </div>
                 <div class="text-white/40 text-xs mt-1" style="font-family: 'Outfit', sans-serif;">
-                  {{ formatDuration(selectedProject.total_seconds || 0) }}
+                  {{ formatDuration(selectedProject?.total_seconds ?? 0) }}
                 </div>
               </div>
 
               <div class="bg-[rgba(42,31,43,0.5)] border-2 border-[rgba(0,0,0,0.3)] rounded-lg p-4">
                 <div class="text-white/60 text-sm mb-1" style="font-family: 'Outfit', sans-serif;">Heartbeats</div>
                 <div class="text-3xl font-bold text-white" style="font-family: 'Outfit', sans-serif;">
-                  {{ (selectedProject.total_heartbeats || 0).toLocaleString() }}
+                  {{ ((selectedProject?.total_heartbeats ?? 0)).toLocaleString() }}
                 </div>
                 <div class="text-white/40 text-xs mt-1" style="font-family: 'Outfit', sans-serif;">
                   Activity events
@@ -271,12 +271,12 @@
             </div>
 
             <!-- Languages Section -->
-            <div v-if="selectedProject.languages && selectedProject.languages.length > 0">
+            <div v-if="selectedProject?.languages && selectedProject.languages.length > 0">
               <h3 class="text-white text-lg font-bold mb-3" style="font-family: 'Outfit', sans-serif;">Languages</h3>
               <div class="flex flex-wrap gap-2">
                 <span 
-                  v-for="language in selectedProject.languages" 
-                  :key="language"
+                  v-for="(language, langIndex) in selectedProject.languages" 
+                  :key="`modal-lang-${langIndex}-${language}`"
                   class="px-3 py-2 bg-[rgba(233,150,130,0.15)] text-[#E99682] text-sm rounded-lg font-medium border-2 border-[rgba(233,150,130,0.3)]"
                   style="font-family: 'Outfit', sans-serif;"
                 >
@@ -286,12 +286,12 @@
             </div>
 
             <!-- Editors Section -->
-            <div v-if="selectedProject.editors && selectedProject.editors.length > 0">
+            <div v-if="selectedProject?.editors && selectedProject.editors.length > 0">
               <h3 class="text-white text-lg font-bold mb-3" style="font-family: 'Outfit', sans-serif;">Editors</h3>
               <div class="flex flex-wrap gap-2">
                 <span 
-                  v-for="editor in selectedProject.editors" 
-                  :key="editor"
+                  v-for="(editor, editorIndex) in selectedProject.editors" 
+                  :key="`modal-editor-${editorIndex}-${editor}`"
                   class="px-3 py-2 bg-[rgba(232,133,146,0.15)] text-[#E88592] text-sm rounded-lg font-medium border-2 border-[rgba(232,133,146,0.3)]"
                   style="font-family: 'Outfit', sans-serif;"
                 >
@@ -301,7 +301,7 @@
             </div>
 
             <!-- Repository Link -->
-            <div v-if="selectedProject.repo_url">
+            <div v-if="selectedProject?.repo_url">
               <a 
                 :href="selectedProject.repo_url" 
                 target="_blank" 
@@ -390,47 +390,57 @@ const sortByLabel = computed(() => {
 const allLanguages = computed(() => {
   const languages = new Set<string>();
   allProjects.value.forEach(project => {
-    if (project.languages && Array.isArray(project.languages)) {
-      project.languages.forEach(lang => languages.add(lang));
+    if (project && project.languages && Array.isArray(project.languages)) {
+      project.languages.forEach(lang => {
+        if (lang && typeof lang === 'string') {
+          languages.add(lang);
+        }
+      });
     }
   });
   return Array.from(languages).sort();
 });
 
 const filteredProjects = computed(() => {
-  let filtered = [...allProjects.value];
+  let filtered = [...allProjects.value].filter(project => project && typeof project === 'object');
 
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase();
-    filtered = filtered.filter(project => 
-      project.name?.toLowerCase().includes(query) ||
-      (project.languages || []).some(lang => lang.toLowerCase().includes(query)) ||
-      (project.editors || []).some(editor => editor.toLowerCase().includes(query))
-    );
+    filtered = filtered.filter(project => {
+      if (!project) return false;
+      
+      const nameMatch = project.name?.toLowerCase().includes(query);
+      const languageMatch = Array.isArray(project.languages) && 
+        project.languages.some(lang => lang && typeof lang === 'string' && lang.toLowerCase().includes(query));
+      const editorMatch = Array.isArray(project.editors) && 
+        project.editors.some(editor => editor && typeof editor === 'string' && editor.toLowerCase().includes(query));
+      
+      return nameMatch || languageMatch || editorMatch;
+    });
   }
 
   if (filterLanguage.value) {
     filtered = filtered.filter(project => 
-      (project.languages || []).includes(filterLanguage.value)
+      project && Array.isArray(project.languages) && project.languages.includes(filterLanguage.value)
     );
   }
 
   switch (sortBy.value) {
     case "recent":
       filtered.sort((a, b) => {
-        const dateA = a.last_heartbeat ? new Date(a.last_heartbeat).getTime() : 0;
-        const dateB = b.last_heartbeat ? new Date(b.last_heartbeat).getTime() : 0;
+        const dateA = a?.last_heartbeat ? new Date(a.last_heartbeat).getTime() : 0;
+        const dateB = b?.last_heartbeat ? new Date(b.last_heartbeat).getTime() : 0;
         return dateB - dateA;
       });
       break;
     case "time":
-      filtered.sort((a, b) => (b.total_seconds || 0) - (a.total_seconds || 0));
+      filtered.sort((a, b) => (b?.total_seconds || 0) - (a?.total_seconds || 0));
       break;
     case "name":
-      filtered.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+      filtered.sort((a, b) => (a?.name || '').localeCompare(b?.name || ''));
       break;
     case "heartbeats":
-      filtered.sort((a, b) => (b.total_heartbeats || 0) - (a.total_heartbeats || 0));
+      filtered.sort((a, b) => (b?.total_heartbeats || 0) - (a?.total_heartbeats || 0));
       break;
   }
 
@@ -445,6 +455,21 @@ const paginatedProjects = computed(() => {
 const hasMoreProjects = computed(() => {
   return paginatedProjects.value.length < filteredProjects.value.length;
 });
+
+function normalizeProject(project: any): Project {
+  return {
+    name: project?.name || 'Unnamed Project',
+    total_seconds: Number(project?.total_seconds) || 0,
+    total_heartbeats: Number(project?.total_heartbeats) || 0,
+    languages: Array.isArray(project?.languages) ? project.languages : [],
+    editors: Array.isArray(project?.editors) ? project.editors : [],
+    first_heartbeat: project?.first_heartbeat || null,
+    last_heartbeat: project?.last_heartbeat || null,
+    repo_url: project?.repo_url || null,
+    recent_activity_seconds: Number(project?.recent_activity_seconds) || 0,
+    recent_activity_formatted: project?.recent_activity_formatted || ''
+  };
+}
 
 async function loadProjects() {
   isLoading.value = true;
@@ -464,7 +489,9 @@ async function loadProjects() {
       apiConfig: props.apiConfig 
     }) as ProjectsResponse;
     console.log("Projects loaded:", response);
-    allProjects.value = response.projects || [];
+    
+    const projects = response?.projects || [];
+    allProjects.value = projects.map(normalizeProject).filter(p => p.name && p.name !== 'Unnamed Project');
   } catch (err) {
     console.error("Failed to load projects:", err);
     error.value = err instanceof Error ? err.message : String(err);

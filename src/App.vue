@@ -28,6 +28,26 @@ if (!(window as any).__hackatimeConsoleWrapped) {
   console.info('[CONSOLE] Console wrapper initialized - logs will be captured');
 }
 
+if (!(window as any).__hackatimeErrorHandlerSet) {
+  (window as any).__hackatimeErrorHandlerSet = true;
+  
+  window.addEventListener('unhandledrejection', (event) => {
+    console.error('[UNHANDLED REJECTION]', event.reason);
+    
+    const errorMessage = event.reason?.message || String(event.reason);
+    if (errorMessage.includes('callbackId') || 
+        errorMessage.includes('IPC') || 
+        errorMessage.includes('Load failed')) {
+      event.preventDefault();
+      console.warn('[IPC] Suppressed IPC-related error that was already logged');
+    }
+  });
+  
+  window.addEventListener('error', (event) => {
+    console.error('[UNHANDLED ERROR]', event.error);
+  });
+}
+
 interface AuthState {
   is_authenticated: boolean;
   access_token: string | null;
