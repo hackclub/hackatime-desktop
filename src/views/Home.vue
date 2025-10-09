@@ -3,7 +3,7 @@
   <div v-if="!authState.is_authenticated" class="flex items-center justify-center min-h-96">
     <div class="text-center max-w-md">
       <h3 class="text-2xl mb-4 text-text-primary">Welcome to Hackatime</h3>
-      <p class="text-text-secondary mb-8 leading-relaxed">Connect to your KubeTime account to start tracking your coding time.</p>
+      <p class="text-text-secondary mb-8 leading-relaxed">Connect to your Hackatime account to start tracking your coding time.</p>
 
       <!-- Production authentication (deep link) -->
       <template v-if="!isDevMode">
@@ -12,9 +12,17 @@
           :disabled="isLoading"
           class="bg-accent-primary text-white border-0 px-8 py-4 rounded-xl text-base font-medium cursor-pointer transition-all duration-200 my-4 w-full hover:bg-accent-secondary hover:shadow-card-hover disabled:bg-text-muted disabled:cursor-not-allowed disabled:transform-none"
         >
-          {{ isLoading ? 'Opening Login...' : 'Login with KubeTime' }}
+          {{ isLoading ? 'Opening Login...' : 'Login with Hackatime' }}
         </button>
         <p class="text-text-secondary text-sm mt-2">This will open your browser for OAuth authentication.</p>
+      
+        <button 
+          v-if="oauthUrl && !isLoading"
+          @click="openOAuthUrlManually" 
+          class="bg-bg-secondary text-text-primary border border-border-secondary px-6 py-3 rounded-xl text-sm font-medium cursor-pointer transition-all duration-200 mt-4 w-full hover:bg-bg-tertiary hover:border-accent-primary"
+        >
+          Link didn't open? Click here
+        </button>
       </template>
       
       <!-- Development authentication options -->
@@ -28,6 +36,14 @@
             {{ isLoading ? 'Opening Login...' : 'Open Browser Login' }}
           </button>
           <p class="text-text-secondary text-sm mt-2">This will open your browser for OAuth authentication.</p>
+          
+          <button 
+            v-if="oauthUrl && !isLoading"
+            @click="openOAuthUrlManually" 
+            class="bg-bg-secondary text-text-primary border border-border-secondary px-6 py-3 rounded-xl text-sm font-medium cursor-pointer transition-all duration-200 mt-4 w-full hover:bg-bg-tertiary hover:border-accent-primary"
+          >
+            Link didn't open? Click here
+          </button>
         </div>
         
         <div class="mt-8 pt-8 border-t border-border-primary text-left">
@@ -190,11 +206,13 @@ defineProps<{
   isLoading: boolean;
   isDevMode: boolean;
   directOAuthToken: string;
+  oauthUrl: string | null;
 }>();
 
 const emit = defineEmits<{
   authenticate: [];
   handleDirectOAuthAuth: [];
+  openOAuthUrlManually: [];
   'update:directOAuthToken': [value: string];
 }>();
 
@@ -228,6 +246,10 @@ async function authenticate() {
 
 async function handleDirectOAuthAuth() {
   emit('handleDirectOAuthAuth');
+}
+
+async function openOAuthUrlManually() {
+  emit('openOAuthUrlManually');
 }
 
 function getWeeklyCardStyle(percentage: number): string {

@@ -82,8 +82,8 @@ pub async fn get_auth_state(
 pub async fn authenticate_with_rails(
     api_config: crate::config::ApiConfig,
     pkce_state: State<'_, Arc<tauri::async_runtime::Mutex<Option<PkceState>>>>,
-    _app_handle: tauri::AppHandle,
-) -> Result<(), String> {
+    app_handle: tauri::AppHandle,
+) -> Result<String, String> {
 
     let callback_url = "hackatime://auth/callback";
     
@@ -106,12 +106,16 @@ pub async fn authenticate_with_rails(
         urlencoding::encode(&code_challenge)
     );
 
-    if let Err(e) = open::that(&auth_url) {
-        return Err(format!("Failed to open authentication URL: {}", e));
+    // Use Tauri's opener plugin for better cross-platform support
+    use tauri_plugin_opener::OpenerExt;
+    if let Err(e) = app_handle.opener().open_url(&auth_url, None::<&str>) {
+        push_log("error", "backend", format!("Failed to open authentication URL: {}", e));
+        // Return the URL so the frontend can show a fallback button
+        return Ok(auth_url);
     }
 
     push_log("info", "backend", "OAuth authentication URL opened in browser. Waiting for callback...".to_string());
-    Ok(())
+    Ok(auth_url)
 }
 
 #[tauri::command]

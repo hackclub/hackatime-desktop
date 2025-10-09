@@ -58,6 +58,7 @@ const sessionStats = ref<any>(null);
 const presenceData = ref<any>(null);
 const presenceRefreshInterval = ref<number | null>(null);
 const presenceFetchInProgress = ref(false);
+const oauthUrl = ref<string | null>(null);
 const nextPresenceFetchAllowedAt = ref<number>(0);
 const lastPresenceFetchAt = ref<number>(0);
 
@@ -343,15 +344,33 @@ function stopPresenceRefresh() {
 
 async function authenticate() {
   isLoading.value = true;
+  oauthUrl.value = null; 
   try {
-    await invoke("authenticate_with_rails", { apiConfig: apiConfig.value });
-    
-    alert(`OAuth authentication opened in browser!\n\nInstructions:\n1. Complete the OAuth flow in your browser\n2. The app will automatically handle the callback\n3. If the callback doesn't work, you can manually paste the authorization code from the URL\n\nFor manual entry:\n- Copy the 'code' parameter from the callback URL\n- Use the "Direct OAuth" field below to paste it`);
+    const url = await invoke("authenticate_with_rails", { apiConfig: apiConfig.value });
+    oauthUrl.value = url as string;
+    console.log("OAuth URL:", url);
   } catch (error) {
     console.error("Authentication failed:", error);
     alert("Authentication failed: " + (error instanceof Error ? error.message : String(error)));
   } finally {
     isLoading.value = false;
+  }
+}
+
+async function openOAuthUrlManually() {
+  if (oauthUrl.value) {
+    try {
+      const { openUrl } = await import("@tauri-apps/plugin-opener");
+      await openUrl(oauthUrl.value);
+    } catch (error) {
+      console.error("Failed to open URL manually:", error);
+      try {
+        await navigator.clipboard.writeText(oauthUrl.value);
+        alert("Failed to open link. URL copied to clipboard!");
+      } catch (clipError) {
+        alert(`Failed to open link. Please visit: ${oauthUrl.value}`);
+      }
+    }
   }
 }
 
@@ -580,9 +599,11 @@ async function checkForUpdatesAndInstall() {
             :weeklyChartData="weeklyChartData"
             :isLoading="isLoading"
             :isDevMode="isDevMode"
+            :oauthUrl="oauthUrl"
             v-model:directOAuthToken="directOAuthToken"
             @authenticate="authenticate"
             @handleDirectOAuthAuth="handleDirectOAuthAuth"
+            @openOAuthUrlManually="openOAuthUrlManually"
           />
         </div>
 
