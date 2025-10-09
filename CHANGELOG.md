@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.2](https://github.com/hackclub/hackatime-desktop/compare/app-v1.4.1...app-v1.4.2) (2025-10-09)
+
+
+### 🐛 Bugfixes
+
+* eliminate "coding now" legend when no session is active ([ce7dcfa](https://github.com/hackclub/hackatime-desktop/commit/ce7dcfa2dae8afc16fe0396d249e71081fb7578b))
+* solve crash on resize [#56](https://github.com/hackclub/hackatime-desktop/issues/56) ([3b57b27](https://github.com/hackclub/hackatime-desktop/commit/3b57b270af05938167112eb96408ae265a9e6d51))
+
 ## [1.4.1](https://github.com/hackclub/hackatime-desktop/compare/app-v1.4.0...app-v1.4.1) (2025-10-09)
 
 
