@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.1](https://github.com/hackclub/hackatime-desktop/compare/app-v1.6.0...app-v1.6.1) (2025-10-09)
+
+
+### 🐛 Bugfixes
+
+* update settings page layout ([55d5875](https://github.com/hackclub/hackatime-desktop/commit/55d58750785eec0ac627f5c4a1b4a9882c14f2a7))
+
 ## [1.6.0](https://github.com/hackclub/hackatime-desktop/compare/app-v1.5.1...app-v1.6.0) (2025-10-09)
 
 
