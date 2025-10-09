@@ -170,31 +170,44 @@ pub fn run() {
                     use objc2::runtime::AnyObject;
                     use objc2_app_kit::NSColor;
                     use objc2::msg_send;
+                    use std::panic;
                     
                     if let Err(e) = window.set_title_bar_style(TitleBarStyle::Transparent) {
                         push_log("error", "backend", format!("Failed to set title bar style: {}", e));
                     }
                     
                     // Apply macOS-specific window styling with proper error handling
-                    if let Ok(ns_win) = window.ns_window() {
-                        let ns_window = ns_win as *mut AnyObject;
-                        unsafe {
-                            let clear_color = NSColor::clearColor();
-                            let _: () = msg_send![ns_window, setBackgroundColor: &*clear_color];
-                            let _: () = msg_send![ns_window, setOpaque: false];
-                            
-                            let content_view: *mut AnyObject = msg_send![ns_window, contentView];
-                            let _: () = msg_send![content_view, setWantsLayer: true];
-                            
-                            let layer: *mut AnyObject = msg_send![content_view, layer];
-                            let _: () = msg_send![layer, setCornerRadius: 12.0f64];
-                            let _: () = msg_send![layer, setMasksToBounds: true];
-                            
-                            let _: () = msg_send![layer, setNeedsDisplayOnBoundsChange: true];
+                    let styling_result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+                        if let Ok(ns_win) = window.ns_window() {
+                            let ns_window = ns_win as *mut AnyObject;
+                            unsafe {
+                                let clear_color = NSColor::clearColor();
+                                let _: () = msg_send![ns_window, setBackgroundColor: &*clear_color];
+                                let _: () = msg_send![ns_window, setOpaque: false];
+                                
+                                let content_view: *mut AnyObject = msg_send![ns_window, contentView];
+                                let _: () = msg_send![content_view, setWantsLayer: true];
+                                
+                                let layer: *mut AnyObject = msg_send![content_view, layer];
+                                let _: () = msg_send![layer, setCornerRadius: 12.0f64];
+
+                            }
+                            Ok(())
+                        } else {
+                            Err("Failed to get NSWindow")
                         }
-                        push_log("info", "backend", "✅ macOS window styling applied".to_string());
-                    } else {
-                        push_log("error", "backend", "Failed to get NSWindow".to_string());
+                    }));
+                    
+                    match styling_result {
+                        Ok(Ok(())) => {
+                            push_log("info", "backend", "✅ macOS window styling applied".to_string());
+                        }
+                        Ok(Err(e)) => {
+                            push_log("error", "backend", format!("Failed to apply window styling: {}", e));
+                        }
+                        Err(_) => {
+                            push_log("error", "backend", "Panic occurred while applying window styling".to_string());
+                        }
                     }
                 }
             }

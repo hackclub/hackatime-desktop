@@ -25,7 +25,7 @@
       <button 
         class="traffic-light maximize-light" 
         @click="toggleMaximize"
-        :title="isMaximized ? 'Restore' : 'Maximize'"
+        title="Maximize"
         aria-label="Maximize"
       >
         <svg width="8" height="8" viewBox="0 0 8 8" class="traffic-light-icon">
@@ -52,14 +52,10 @@
       <button 
         class="titlebar-button maximize-button" 
         @click="toggleMaximize"
-        :title="isMaximized ? 'Restore' : 'Maximize'"
+        title="Maximize"
       >
-        <svg v-if="!isMaximized" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect x="1" y="1" width="10" height="10" stroke="currentColor" stroke-width="1" fill="none"/>
-        </svg>
-        <svg v-else width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="2" y="2" width="8" height="8" stroke="currentColor" stroke-width="1" fill="none"/>
-          <rect x="1" y="1" width="8" height="8" stroke="currentColor" stroke-width="1" fill="none"/>
         </svg>
       </button>
 
@@ -92,37 +88,16 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 
-const isMaximized = ref(false);
 const isMacOS = ref(false);
 
-onMounted(async () => {
-  try {
-    
-    isMacOS.value = navigator.userAgent.includes('Mac');
-    
-    const { getCurrentWindow } = await import('@tauri-apps/api/window');
-    const window = getCurrentWindow();
-    isMaximized.value = await window.isMaximized();
-    
-    
-    const unlisten = await window.onResized(async () => {
-      isMaximized.value = await window.isMaximized();
-    });
-    
-    
-    return unlisten;
-  } catch (error) {
-    console.error('Failed to setup window state:', error);
-  }
+onMounted(() => {
+  isMacOS.value = navigator.userAgent.includes('Mac');
 });
-
 
 const handleDoubleClick = async () => {
   try {
     const { getCurrentWindow } = await import('@tauri-apps/api/window');
-    const window = getCurrentWindow();
-    await window.toggleMaximize();
-    isMaximized.value = await window.isMaximized();
+    await getCurrentWindow().toggleMaximize();
   } catch (error) {
     console.error('Failed to toggle maximize:', error);
   }
@@ -140,9 +115,7 @@ const minimizeWindow = async () => {
 const toggleMaximize = async () => {
   try {
     const { getCurrentWindow } = await import('@tauri-apps/api/window');
-    const window = getCurrentWindow();
-    await window.toggleMaximize();
-    isMaximized.value = await window.isMaximized();
+    await getCurrentWindow().toggleMaximize();
   } catch (error) {
     console.error('Failed to toggle maximize:', error);
   }

@@ -27,8 +27,12 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     ])?;
     
     
+    let icon = app.default_window_icon()
+        .ok_or("No default window icon found")?
+        .clone();
+    
     let _tray_icon = TrayIconBuilder::new()
-        .icon(app.default_window_icon().unwrap().clone())
+        .icon(icon)
         .menu(&menu)
         .show_menu_on_left_click(true)
         .on_menu_event(|app, event| {
