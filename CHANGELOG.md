@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/hackclub/hackatime-desktop/compare/app-v1.3.2...app-v1.4.0) (2025-10-09)
+
+
+### ✨ Features
+
+* add login page ([5471171](https://github.com/hackclub/hackatime-desktop/commit/547117173bdc81eb87e8f6fcebc70dfbe214698e))
+
 ## [1.3.2](https://github.com/hackclub/hackatime-desktop/compare/app-v1.3.1...app-v1.3.2) (2025-10-09)
 
 
