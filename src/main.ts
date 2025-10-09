@@ -15,14 +15,28 @@ app.provide('posthog', posthog)
 Sentry.init({
   app,
   dsn: "https://d67e5cceba1b80139ca09c806efc616a@o4509680631087104.ingest.us.sentry.io/4510156240060417",
+  
+  release: __SENTRY_RELEASE__,
+  environment: __SENTRY_ENVIRONMENT__,
+  
   sendDefaultPii: true,
+  debug: __SENTRY_ENVIRONMENT__ === 'development',
+  maxBreadcrumbs: 100,
+  attachStacktrace: true,
+  
+  sampleRate: 1.0,
+  
   integrations: [
-    Sentry.browserTracingIntegration()
+    Sentry.browserTracingIntegration(),
+    Sentry.replayIntegration({
+      maskAllText: false,
+      blockAllMedia: false,
+    }),
   ],
   
-  tracesSampleRate: 1.0, 
+  tracesSampleRate: __SENTRY_ENVIRONMENT__ === 'production' ? 0.1 : 1.0,
   
-  tracePropagationTargets: ["localhost", /^https:\/\/yourserver\.io\/api/],
+  profilesSampleRate: __SENTRY_ENVIRONMENT__ === 'production' ? 0.1 : 1.0,
   
   enableLogs: true
 })

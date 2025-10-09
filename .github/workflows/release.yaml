@@ -148,6 +148,8 @@ jobs:
           APPLE_PASSWORD: '${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}'
           TAURI_SIGNING_PRIVATE_KEY: '${{ secrets.TAURI_PRIVATE_KEY }}'
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: '${{ secrets.TAURI_KEY_PASSWORD }}'
+          SENTRY_RELEASE: 'hackatime-desktop@${{ needs.release-please.outputs.tag_name }}'
+          SENTRY_ENVIRONMENT: 'production'
       - name: build app
         run: >-
           pnpm run tauri build
@@ -157,6 +159,8 @@ jobs:
           GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
           TAURI_SIGNING_PRIVATE_KEY: '${{ secrets.TAURI_PRIVATE_KEY }}'
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: '${{ secrets.TAURI_KEY_PASSWORD }}'
+          SENTRY_RELEASE: 'hackatime-desktop@${{ needs.release-please.outputs.tag_name }}'
+          SENTRY_ENVIRONMENT: 'production'
       - name: Sign files with Trusted Signing
         if: 'startsWith(matrix.platform, ''windows'')'
         uses: azure/trusted-signing-action@v0.5.1

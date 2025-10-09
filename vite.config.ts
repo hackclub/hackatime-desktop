@@ -9,7 +9,10 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(async () => ({
   plugins: [vue(), tailwindcss()],
 
-  
+  define: {
+    __SENTRY_RELEASE__: JSON.stringify(process.env.SENTRY_RELEASE || 'development'),
+    __SENTRY_ENVIRONMENT__: JSON.stringify(process.env.SENTRY_ENVIRONMENT || 'development'),
+  },
   
   
   clearScreen: false,
