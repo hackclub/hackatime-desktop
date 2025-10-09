@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.5.0](https://github.com/hackclub/hackatime-desktop/compare/app-v1.4.2...app-v1.5.0) (2025-10-09)
+
+
+### ✨ Features
+
+* configure sentry releases ([553ba74](https://github.com/hackclub/hackatime-desktop/commit/553ba74304b40f2e55fe355e3e907e2450209d85))
+
+
+### 🐛 Bugfixes
+
+* add "ph-no-capture" class to profile card and api card ([d03e8ae](https://github.com/hackclub/hackatime-desktop/commit/d03e8ae14fc359cbfd5cf5c350d3895feff33b25))
+
 ## [1.4.2](https://github.com/hackclub/hackatime-desktop/compare/app-v1.4.1...app-v1.4.2) (2025-10-09)
 
 
