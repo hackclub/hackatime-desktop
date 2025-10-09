@@ -11,13 +11,14 @@
     </div>
 
     <!-- Content Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Left Column -->
-      <div class="flex flex-col gap-6 min-h-0">
+      <div class="flex flex-col gap-6">
 
         <!-- Preferences -->
-        <div class="card-3d flex-1 min-h-0">
-          <div class="rounded-[8px] border border-black p-6 card-3d-front h-full" style="background-color: #3D2C3E;">
+        <div class="card-3d">
+          <div class="rounded-[8px] border border-black p-5 card-3d-front" style="background-color: #3D2C3E;">
+            <h3 class="text-white text-[16px] font-bold m-0 mb-4" style="font-family: 'Outfit', sans-serif;">Preferences</h3>
             <div class="space-y-5">
               <div class="flex items-center justify-between">
                 <div>
@@ -52,13 +53,46 @@
             </div>
           </div>
         </div>
+
+        <!-- API Access -->
+        <div v-if="apiKey" class="card-3d ph-no-capture">
+          <div class="rounded-[8px] border border-black p-5 card-3d-front" style="background-color: #3D2C3E;">
+            <h3 class="text-white text-[16px] font-bold m-0 mb-4" style="font-family: 'Outfit', sans-serif;">Your API Key</h3>
+            <p class="text-sm text-text-secondary mb-4">Use this key to authenticate with the KubeTime API</p>
+            <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+              <input 
+                :type="showApiKey ? 'text' : 'password'" 
+                :value="apiKey" 
+                readonly 
+                class="flex-1 p-3 bg-[rgba(20,15,21,0.3)] border border-[rgba(50,36,51,0.4)] rounded-xl text-text-primary font-mono text-sm min-w-0 break-all"
+              />
+              <div class="flex gap-2 flex-shrink-0">
+                <button @click="$emit('update:showApiKey', !showApiKey)" class="p-3 border border-[rgba(50,36,51,0.4)] rounded-xl cursor-pointer text-sm min-w-11 transition-all duration-200 bg-[rgba(20,15,21,0.3)] text-text-secondary hover:bg-bg-primary hover:text-text-primary hover:border-accent-primary">
+                  <svg v-if="showApiKey" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L8.464 8.464M9.878 9.878L12 12m-2.122-2.122l1.415 1.415M12 12l2.122 2.122m-2.122-2.122L12 12m2.122 2.122l-1.415-1.415M12 12l-2.122-2.122"></path>
+                  </svg>
+                  <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                  </svg>
+                </button>
+                <button @click="copyApiKey" class="p-3 border border-accent-info rounded-xl cursor-pointer text-sm min-w-11 transition-all duration-200 bg-accent-info text-white hover:bg-blue-400">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Right Column -->
-      <div class="flex flex-col gap-6 min-h-0">
+      <div class="flex flex-col gap-6">
         <!-- About -->
         <div class="card-3d">
-          <div class="rounded-[8px] border border-black p-6 card-3d-front" style="background-color: #3D2C3E;">
+          <div class="rounded-[8px] border border-black p-5 card-3d-front" style="background-color: #3D2C3E;">
+            <h3 class="text-white text-[16px] font-bold m-0 mb-4" style="font-family: 'Outfit', sans-serif;">About</h3>
             <div class="space-y-3">
               <div class="flex justify-between">
                 <span class="text-text-secondary">Version</span>
@@ -90,7 +124,7 @@
                   </button>
                 </div>
               </div>
-              <div v-if="updateInfo" class="mt-4 p-4 rounded-lg border border-black" style="background-color: #2A1F2B;">
+              <div v-if="updateInfo" class="mt-4 p-4 rounded-lg border border-[rgba(50,36,51,0.4)]" style="background-color: #2A1F2B;">
                 <div class="space-y-2">
                   <div class="flex justify-between">
                     <span class="text-text-secondary text-sm">New Version</span>
@@ -121,45 +155,9 @@
           </div>
         </div>
 
-        <!-- API Access -->
-        <div v-if="apiKey" class="card-3d ph-no-capture">
-          <div class="rounded-[8px] border border-black p-6 card-3d-front" style="background-color: #3D2C3E;">
-            <div class="space-y-4">
-              <div>
-                <h4 class="font-medium text-text-primary mb-2">Your API Key</h4>
-                <p class="text-sm text-text-secondary mb-4">Use this key to authenticate with the KubeTime API</p>
-                <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-                  <input 
-                    :type="showApiKey ? 'text' : 'password'" 
-                    :value="apiKey" 
-                    readonly 
-                    class="flex-1 p-3 bg-[rgba(50,36,51,0.15)] border border-[rgba(50,36,51,0.25)] rounded-xl text-text-primary font-mono text-sm min-w-0 break-all"
-                  />
-                  <div class="flex gap-2 flex-shrink-0">
-                    <button @click="$emit('update:showApiKey', !showApiKey)" class="p-3 border border-[rgba(50,36,51,0.25)] rounded-xl cursor-pointer text-sm min-w-11 transition-all duration-200 bg-[rgba(50,36,51,0.15)] text-text-secondary hover:bg-bg-primary hover:text-text-primary hover:border-accent-primary">
-                      <svg v-if="showApiKey" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L8.464 8.464M9.878 9.878L12 12m-2.122-2.122l1.415 1.415M12 12l2.122 2.122m-2.122-2.122L12 12m2.122 2.122l-1.415-1.415M12 12l-2.122-2.122"></path>
-                      </svg>
-                      <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                      </svg>
-                    </button>
-                    <button @click="copyApiKey" class="p-3 border border-accent-info rounded-xl cursor-pointer text-sm min-w-11 transition-all duration-200 bg-accent-info text-white hover:bg-blue-400">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- WakaTime Configuration -->
         <div class="card-3d">
-          <div class="rounded-[8px] border border-black p-6 card-3d-front" style="background-color: #3D2C3E;">
+          <div class="rounded-[8px] border border-black p-5 card-3d-front" style="background-color: #3D2C3E;">
             <div class="flex items-center justify-between">
               <div>
                 <h4 class="font-medium text-text-primary mb-1">Setup</h4>
@@ -177,7 +175,7 @@
 
         <!-- Cache Management -->
         <div class="card-3d">
-          <div class="rounded-[8px] border border-black p-6 card-3d-front" style="background-color: #3D2C3E;">
+          <div class="rounded-[8px] border border-black p-5 card-3d-front" style="background-color: #3D2C3E;">
             <div class="flex items-center justify-between">
               <div>
                 <h4 class="font-medium text-text-primary mb-1">Statistics Cache</h4>
@@ -196,7 +194,7 @@
 
         <!-- Account -->
         <div class="card-3d">
-          <div class="rounded-[8px] border border-black p-6 card-3d-front" style="background-color: #3D2C3E;">
+          <div class="rounded-[8px] border border-black p-5 card-3d-front" style="background-color: #3D2C3E;">
             <div class="flex items-center justify-between">
               <div>
                 <h4 class="font-medium text-text-primary mb-1">Sign Out</h4>
