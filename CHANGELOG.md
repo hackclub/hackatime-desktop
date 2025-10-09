@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.2](https://github.com/hackclub/hackatime-desktop/compare/app-v1.3.1...app-v1.3.2) (2025-10-09)
+
+
+### 🐛 Bugfixes
+
+* make windows register deeplinks ([fa6acaf](https://github.com/hackclub/hackatime-desktop/commit/fa6acaf41fe5e2e44e2b9eca3d66f64f939ba1c4))
+* solve windows deeplink error ([ad3e27c](https://github.com/hackclub/hackatime-desktop/commit/ad3e27c859adb3136ed45dc7fe85fa6da47f1ced))
+
 ## [1.3.1](https://github.com/hackclub/hackatime-desktop/compare/app-v1.3.0...app-v1.3.1) (2025-10-08)
 
 
