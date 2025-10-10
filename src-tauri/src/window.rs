@@ -2,6 +2,9 @@ use tauri::Manager;
 
 #[tauri::command]
 pub async fn show_window(app: tauri::AppHandle) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
+    
     if let Some(window) = app.get_webview_window("main") {
         window
             .show()
@@ -20,6 +23,10 @@ pub async fn hide_window(app: tauri::AppHandle) -> Result<(), String> {
             .hide()
             .map_err(|e| format!("Failed to hide window: {}", e))?;
     }
+    
+    #[cfg(target_os = "macos")]
+    let _ = app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+    
     Ok(())
 }
 
@@ -30,7 +37,13 @@ pub async fn toggle_window(app: tauri::AppHandle) -> Result<(), String> {
             window
                 .hide()
                 .map_err(|e| format!("Failed to hide window: {}", e))?;
+            
+            #[cfg(target_os = "macos")]
+            let _ = app.set_activation_policy(tauri::ActivationPolicy::Accessory);
         } else {
+            #[cfg(target_os = "macos")]
+            let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
+            
             window
                 .show()
                 .map_err(|e| format!("Failed to show window: {}", e))?;

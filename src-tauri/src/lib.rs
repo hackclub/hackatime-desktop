@@ -71,6 +71,9 @@ pub fn run() {
             push_log("info", "backend", format!("Single instance detected. Args: {:?}, CWD: {}", args, cwd));
             
             if let Some(window) = app.get_webview_window("main") {
+                #[cfg(target_os = "macos")]
+                let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
+                
                 let _ = window.show();
                 let _ = window.set_focus();
                 push_log("info", "backend", "Brought existing window to front".to_string());
@@ -306,22 +309,23 @@ pub fn run() {
                             push_log("info", "backend", "🪟 Window close requested - hiding to tray".to_string());
                             api.prevent_close();
                             
-                            // Use the app handle to get the window and hide it asynchronously
-                            // This prevents potential re-entrancy issues
                             let app_clone = app_handle.clone();
                             std::thread::spawn(move || {
                                 if let Some(win) = app_clone.get_webview_window("main") {
                                     let _ = win.hide();
                                     push_log("info", "backend", "✅ Window hidden to tray".to_string());
+                                    
+                                    #[cfg(target_os = "macos")]
+                                    {
+                                        let _ = app_clone.set_activation_policy(tauri::ActivationPolicy::Accessory);
+                                        push_log("info", "backend", "✅ App removed from Dock".to_string());
+                                    }
                                 }
                             });
                         }
                         WindowEvent::Resized(_) => {
-                            // Handle resize events gracefully - no action needed
-                            // This prevents potential crashes on macOS with transparent windows
                         }
                         WindowEvent::Moved(_) => {
-                            // Handle move events gracefully
                         }
                         _ => {}
                     }
