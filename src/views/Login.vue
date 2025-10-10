@@ -83,6 +83,28 @@
                 </span>
               </button>
 
+              <!-- Linux-specific OAuth URL copy section -->
+              <div v-if="currentOs === 'linux' && oauthUrl" class="mt-6 mb-6 p-4 bg-[#2A1F2B] border border-white/20 rounded-lg">
+                <p class="text-white/70 text-sm mb-3" style="font-family: 'Outfit', sans-serif;">
+                  <strong>Linux:</strong> Copy the link to open in your browser manually
+                </p>
+                <div class="flex gap-2">
+                  <input 
+                    :value="oauthUrl"
+                    readonly
+                    class="flex-1 p-3 bg-[#3D2C3E] border border-white/20 rounded-lg text-white font-mono text-xs focus:outline-none focus:border-[#E99682] transition-colors select-all"
+                    @click="($event.target as HTMLInputElement)?.select()"
+                  />
+                  <button 
+                    @click="copyOAuthUrl"
+                    class="px-4 py-3 rounded-lg border-2 border-[rgba(0,0,0,0.35)] font-bold text-sm transition-all bg-[#E99682] text-white hover:bg-[#d88672]"
+                    style="font-family: 'Outfit', sans-serif;"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+
               <button 
                 @click="cancelAuth"
                 class="text-white/60 text-base hover:text-white transition-colors font-medium"
@@ -108,12 +130,6 @@ const emit = defineEmits<{
   openOAuthUrlManually: [];
 }>();
 
-defineProps<{
-  isLoading: boolean;
-  isDevMode: boolean;
-  oauthUrl: string | null;
-}>();
-
 const authInProgress = ref(false);
 const directToken = ref('');
 
@@ -136,6 +152,25 @@ function handleDirectAuth() {
   if (directToken.value.trim()) {
     emit('handleDirectOAuthAuth', directToken.value.trim());
     directToken.value = '';
+  }
+}
+
+const props = defineProps<{
+  isLoading: boolean;
+  isDevMode: boolean;
+  oauthUrl: string | null;
+  currentOs: string | null;
+}>();
+
+async function copyOAuthUrl() {
+  if (!props.oauthUrl) return;
+  
+  try {
+    await navigator.clipboard.writeText(props.oauthUrl);
+    alert("OAuth URL copied to clipboard!");
+  } catch (error) {
+    console.error("Failed to copy OAuth URL:", error);
+    alert("Failed to copy OAuth URL to clipboard");
   }
 }
 </script>

@@ -36,6 +36,11 @@ fn get_app_version(app: tauri::AppHandle) -> String {
     app.package_info().version.to_string()
 }
 
+#[tauri::command]
+fn get_current_os() -> String {
+    std::env::consts::OS.to_string()
+}
+
 #[derive(Clone, serde::Serialize)]
 struct LogEntry {
     ts: i64,
@@ -112,6 +117,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             greet,
             get_app_version,
+            get_current_os,
             get_recent_logs,
             
             database::get_platform_info,

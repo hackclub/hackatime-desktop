@@ -84,6 +84,7 @@ const presenceFetchInProgress = ref(false);
 const oauthUrl = ref<string | null>(null);
 const nextPresenceFetchAllowedAt = ref<number>(0);
 const lastPresenceFetchAt = ref<number>(0);
+const currentOs = ref<string | null>(null);
 
 const currentPage = ref<'home' | 'projects' | 'statistics' | 'settings'>('home');
 
@@ -131,6 +132,7 @@ onMounted(async () => {
   await loadAuthState();
   await loadApiConfig();
   await loadHackatimeInfo();
+  await loadCurrentOs();
   
   try {
     const appVersion = await invoke("get_app_version") as string;
@@ -330,6 +332,16 @@ async function loadHackatimeInfo() {
     sessionStats.value = await invoke("get_session_stats");
   } catch (error) {
     console.error("Failed to load hackatime info:", error);
+  }
+}
+
+async function loadCurrentOs() {
+  try {
+    currentOs.value = await invoke("get_current_os") as string;
+    console.log("Current OS detected:", currentOs.value);
+  } catch (error) {
+    console.error("Failed to detect current OS:", error);
+    currentOs.value = null;
   }
 }
 
@@ -574,6 +586,7 @@ async function handleInstallNow() {
         :isLoading="isLoading"
         :isDevMode="isDevMode"
         :oauthUrl="oauthUrl"
+        :currentOs="currentOs"
         @authenticate="authenticate"
         @handleDirectOAuthAuth="handleDirectOAuthAuth"
         @openOAuthUrlManually="openOAuthUrlManually"
