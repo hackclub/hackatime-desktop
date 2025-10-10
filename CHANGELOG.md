@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.7.2](https://github.com/hackclub/hackatime-desktop/compare/app-v1.7.1...app-v1.7.2) (2025-10-10)
+
+
+### 🐛 Bugfixes
+
+* add manual oauth link copy for linux ([3ec4f33](https://github.com/hackclub/hackatime-desktop/commit/3ec4f3386a3e2bbf5a2c4bddc80bf28d789b9705))
+* fix update popup not showing ([1705082](https://github.com/hackclub/hackatime-desktop/commit/17050825223327da6e603cfe21500cf78c74e215))
+
 ## [1.7.1](https://github.com/hackclub/hackatime-desktop/compare/app-v1.7.0...app-v1.7.1) (2025-10-10)
 
 
