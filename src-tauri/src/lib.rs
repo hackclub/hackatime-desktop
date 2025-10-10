@@ -11,6 +11,7 @@ mod config;
 mod database;
 mod db_commands;
 mod discord_rpc;
+mod preferences;
 mod projects;
 mod session;
 mod setup;
@@ -69,14 +70,12 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
             push_log("info", "backend", format!("Single instance detected. Args: {:?}, CWD: {}", args, cwd));
             
-            // Show the existing window
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.show();
                 let _ = window.set_focus();
                 push_log("info", "backend", "Brought existing window to front".to_string());
             }
             
-            // Process any deep links from the new instance attempt
             for arg in args {
                 if arg.starts_with("hackatime://") {
                     push_log("info", "backend", format!("Processing deep link from second instance: {}", arg));
@@ -84,6 +83,7 @@ pub fn run() {
                 }
             }
         }))
+        .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, Some(vec!["--minimized"])))
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
@@ -127,6 +127,10 @@ pub fn run() {
             auth::save_auth_state,
             auth::load_auth_state,
             auth::clear_auth_state,
+            
+            preferences::get_preferences,
+            preferences::set_autostart_enabled,
+            preferences::get_autostart_enabled,
             
             setup::setup_hackatime_macos_linux,
             setup::setup_hackatime_windows,
@@ -260,6 +264,27 @@ pub fn run() {
                     Err(e) => push_log("warn", "backend", format!("Discord RPC auto-connect failed (this is optional): {}", e)),
                 }
             });
+
+            use tauri_plugin_autostart::ManagerExt;
+            let autolaunch_manager = app.autolaunch();
+            match preferences::load_preferences() {
+                Ok(prefs) => {
+                    if prefs.autostart_enabled {
+                        match autolaunch_manager.enable() {
+                            Ok(_) => push_log("info", "backend", "Autostart enabled on app startup".to_string()),
+                            Err(e) => push_log("error", "backend", format!("Failed to enable autostart: {}", e)),
+                        }
+                    } else {
+                        match autolaunch_manager.disable() {
+                            Ok(_) => push_log("info", "backend", "Autostart disabled on app startup".to_string()),
+                            Err(e) => push_log("error", "backend", format!("Failed to disable autostart: {}", e)),
+                        }
+                    }
+                }
+                Err(e) => {
+                    push_log("warn", "backend", format!("Failed to load preferences for autostart: {}", e));
+                }
+            }
             
             
             #[cfg(any(target_os = "linux", target_os = "windows"))]

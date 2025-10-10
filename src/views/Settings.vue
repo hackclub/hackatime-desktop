@@ -25,9 +25,9 @@
                   <h4 class="font-medium text-text-primary mb-1">Auto-start</h4>
                   <p class="text-sm text-text-secondary">Start with system</p>
                 </div>
-                <label class="switch">
-                  <input type="checkbox">
-                  <span class="slider"></span>
+                <label class="switch" :class="{ 'opacity-50 cursor-not-allowed': isLoading }">
+                  <input type="checkbox" :checked="autostartEnabled" :disabled="isLoading" @change="toggleAutostart">
+                  <span class="slider" :class="{ 'animate-pulse': isLoading }"></span>
                 </label>
               </div>
               <div class="flex items-center justify-between">
@@ -290,6 +290,7 @@ const emit = defineEmits<{
 }>()
 
 const discordRpcEnabled = ref(false);
+const autostartEnabled = ref(false);
 const isLoading = ref(false);
 const appVersion = ref('...');
 const isClearingCache = ref(false);
@@ -556,6 +557,31 @@ async function loadDiscordRpcState() {
   }
 }
 
+async function loadAutostartState() {
+  try {
+    autostartEnabled.value = await invoke("get_autostart_enabled");
+  } catch (error) {
+    console.error("Failed to load autostart state:", error);
+  }
+}
+
+async function toggleAutostart() {
+  if (isLoading.value) return;
+  
+  isLoading.value = true;
+  try {
+    const newState = !autostartEnabled.value;
+    await invoke("set_autostart_enabled", { enabled: newState });
+    autostartEnabled.value = newState;
+  } catch (error) {
+    console.error("Failed to toggle autostart:", error);
+    
+    autostartEnabled.value = !autostartEnabled.value;
+  } finally {
+    isLoading.value = false;
+  }
+}
+
 async function toggleDiscordRpc() {
   if (isLoading.value) return;
   
@@ -662,6 +688,7 @@ async function downloadAndInstallUpdate() {
 
 onMounted(async () => {
   loadDiscordRpcState();
+  loadAutostartState();
   try {
     appVersion.value = await getVersion();
   } catch (error) {
