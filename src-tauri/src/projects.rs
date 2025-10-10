@@ -3,6 +3,7 @@ use tauri::State;
 
 use crate::auth::AuthState;
 use crate::config::ApiConfig;
+use crate::push_log;
 
 #[tauri::command]
 pub async fn get_projects(
@@ -49,6 +50,16 @@ pub async fn get_projects(
         .json()
         .await
         .map_err(|e| format!("Failed to parse projects response: {}", e))?;
+
+    push_log(
+        "info",
+        "backend",
+        format!(
+            "RAW PROJECTS API RESPONSE: {}",
+            serde_json::to_string_pretty(&projects_response)
+                .unwrap_or_else(|_| "Failed to serialize".to_string())
+        ),
+    );
 
     Ok(projects_response)
 }

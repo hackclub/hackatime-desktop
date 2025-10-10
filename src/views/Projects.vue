@@ -138,10 +138,9 @@
                 <div class="flex-1 min-w-0">
                   <h4 class="text-white font-semibold text-lg mb-1 truncate" style="font-family: 'Outfit', sans-serif;">{{ project?.name || 'Unnamed' }}</h4>
                   <div class="flex items-center gap-4 text-sm text-white/60 flex-wrap" style="font-family: 'Outfit', sans-serif;">
-                    <span>{{ ((project?.total_heartbeats ?? 0)).toLocaleString() }} heartbeats</span>
                     <span>{{ formatDuration(project?.total_seconds ?? 0) }}</span>
-                    <span v-if="project?.recent_activity_seconds && project.recent_activity_seconds > 0" class="text-[#E99682] font-medium">
-                      Active recently
+                    <span v-if="project?.most_recent_heartbeat" class="text-white/40">
+                      Last active: {{ formatDate(project.most_recent_heartbeat) }}
                     </span>
                   </div>
                 </div>
@@ -153,7 +152,7 @@
               </div>
 
               <!-- Languages and Editors -->
-              <div class="flex flex-wrap gap-2 mb-3">
+              <div class="flex flex-wrap gap-2">
                 <span 
                   v-for="(language, langIndex) in (project?.languages || []).slice(0, 3)" 
                   :key="`${project?.name}-lang-${langIndex}-${language}`"
@@ -168,16 +167,6 @@
                   style="font-family: 'Outfit', sans-serif;"
                 >
                   +{{ (project?.languages || []).length - 3 }} more
-                </span>
-              </div>
-
-              <!-- Time Range -->
-              <div class="text-xs text-white/50" style="font-family: 'Outfit', sans-serif;">
-                <span v-if="project?.first_heartbeat">
-                  First: {{ formatDate(project.first_heartbeat) }}
-                </span>
-                <span v-if="project?.last_heartbeat" class="ml-4">
-                  Last: {{ formatDate(project.last_heartbeat) }}
                 </span>
               </div>
             </div>
@@ -228,9 +217,9 @@
                   {{ selectedProject?.name || 'Unnamed' }}
                 </h2>
                 <div class="flex items-center gap-4 text-white/60 flex-wrap" style="font-family: 'Outfit', sans-serif;">
-                  <span class="text-base">{{ ((selectedProject?.total_heartbeats ?? 0)).toLocaleString() }} heartbeats</span>
-                  <span v-if="selectedProject?.recent_activity_seconds && selectedProject.recent_activity_seconds > 0" class="px-2 py-1 bg-[rgba(233,150,130,0.2)] text-[#E99682] text-sm rounded-md font-medium">
-                    Active recently
+                  <span class="text-base">{{ formatDuration(selectedProject?.total_seconds ?? 0) }}</span>
+                  <span v-if="selectedProject?.most_recent_heartbeat" class="text-sm text-white/40">
+                    Last active: {{ formatDate(selectedProject.most_recent_heartbeat) }}
                   </span>
                 </div>
               </div>
@@ -248,25 +237,13 @@
           <!-- Modal Content -->
           <div class="flex-1 overflow-y-auto p-6 space-y-6 min-h-0">
             <!-- Stats Grid -->
-            <div class="grid grid-cols-2 gap-4">
-              <div class="bg-[rgba(42,31,43,0.5)] border-2 border-[rgba(0,0,0,0.3)] rounded-lg p-4">
-                <div class="text-white/60 text-sm mb-1" style="font-family: 'Outfit', sans-serif;">Total Time</div>
-                <div class="text-3xl font-bold text-white" style="font-family: 'Outfit', sans-serif;">
-                  {{ ((selectedProject?.total_seconds ?? 0) / 3600).toFixed(1) }}h
-                </div>
-                <div class="text-white/40 text-xs mt-1" style="font-family: 'Outfit', sans-serif;">
-                  {{ formatDuration(selectedProject?.total_seconds ?? 0) }}
-                </div>
+            <div class="bg-[rgba(42,31,43,0.5)] border-2 border-[rgba(0,0,0,0.3)] rounded-lg p-6">
+              <div class="text-white/60 text-sm mb-1" style="font-family: 'Outfit', sans-serif;">Total Time</div>
+              <div class="text-4xl font-bold text-white mb-2" style="font-family: 'Outfit', sans-serif;">
+                {{ ((selectedProject?.total_seconds ?? 0) / 3600).toFixed(1) }}h
               </div>
-
-              <div class="bg-[rgba(42,31,43,0.5)] border-2 border-[rgba(0,0,0,0.3)] rounded-lg p-4">
-                <div class="text-white/60 text-sm mb-1" style="font-family: 'Outfit', sans-serif;">Heartbeats</div>
-                <div class="text-3xl font-bold text-white" style="font-family: 'Outfit', sans-serif;">
-                  {{ ((selectedProject?.total_heartbeats ?? 0)).toLocaleString() }}
-                </div>
-                <div class="text-white/40 text-xs mt-1" style="font-family: 'Outfit', sans-serif;">
-                  Activity events
-                </div>
+              <div class="text-white/40 text-base" style="font-family: 'Outfit', sans-serif;">
+                {{ formatDuration(selectedProject?.total_seconds ?? 0) }}
               </div>
             </div>
 
@@ -284,39 +261,6 @@
                 </span>
               </div>
             </div>
-
-            <!-- Editors Section -->
-            <div v-if="selectedProject?.editors && selectedProject.editors.length > 0">
-              <h3 class="text-white text-lg font-bold mb-3" style="font-family: 'Outfit', sans-serif;">Editors</h3>
-              <div class="flex flex-wrap gap-2">
-                <span 
-                  v-for="(editor, editorIndex) in selectedProject.editors" 
-                  :key="`modal-editor-${editorIndex}-${editor}`"
-                  class="px-3 py-2 bg-[rgba(232,133,146,0.15)] text-[#E88592] text-sm rounded-lg font-medium border-2 border-[rgba(232,133,146,0.3)]"
-                  style="font-family: 'Outfit', sans-serif;"
-                >
-                  {{ editor }}
-                </span>
-              </div>
-            </div>
-
-            <!-- Repository Link -->
-            <div v-if="selectedProject?.repo_url">
-              <a 
-                :href="selectedProject.repo_url" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                class="pushable pushable-active w-full block"
-                style="font-family: 'Outfit', sans-serif;"
-              >
-                <span class="front w-full py-3 px-4 rounded-lg border-2 border-[rgba(0,0,0,0.35)] font-bold flex items-center justify-center gap-2" style="background: linear-gradient(135deg, #E99682 0%, #EB9182 33%, #E88592 66%, #E883AE 100%); color: white;">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                  </svg>
-                  View Repository
-                </span>
-              </a>
-            </div>
           </div>
         </div>
       </div>
@@ -332,14 +276,8 @@ import RandomLoader from "../components/RandomLoader.vue";
 interface Project {
   name: string;
   total_seconds: number;
-  total_heartbeats: number;
   languages: string[];
-  editors: string[];
-  first_heartbeat: string | null;
-  last_heartbeat: string | null;
-  repo_url: string | null;
-  recent_activity_seconds: number;
-  recent_activity_formatted: string;
+  most_recent_heartbeat: string | null;
 }
 
 interface ProjectsResponse {
@@ -368,8 +306,7 @@ const languageDropdownRef = ref<HTMLElement | null>(null);
 const sortOptions = [
   { value: 'recent', label: 'Most Recent' },
   { value: 'time', label: 'Most Time' },
-  { value: 'name', label: 'Name (A-Z)' },
-  { value: 'heartbeats', label: 'Most Active' }
+  { value: 'name', label: 'Name (A-Z)' }
 ];
 
 const itemsPerPage = ref(20);
@@ -412,10 +349,8 @@ const filteredProjects = computed(() => {
       const nameMatch = project.name?.toLowerCase().includes(query);
       const languageMatch = Array.isArray(project.languages) && 
         project.languages.some(lang => lang && typeof lang === 'string' && lang.toLowerCase().includes(query));
-      const editorMatch = Array.isArray(project.editors) && 
-        project.editors.some(editor => editor && typeof editor === 'string' && editor.toLowerCase().includes(query));
       
-      return nameMatch || languageMatch || editorMatch;
+      return nameMatch || languageMatch;
     });
   }
 
@@ -428,8 +363,8 @@ const filteredProjects = computed(() => {
   switch (sortBy.value) {
     case "recent":
       filtered.sort((a, b) => {
-        const dateA = a?.last_heartbeat ? new Date(a.last_heartbeat).getTime() : 0;
-        const dateB = b?.last_heartbeat ? new Date(b.last_heartbeat).getTime() : 0;
+        const dateA = a?.most_recent_heartbeat ? new Date(a.most_recent_heartbeat).getTime() : 0;
+        const dateB = b?.most_recent_heartbeat ? new Date(b.most_recent_heartbeat).getTime() : 0;
         return dateB - dateA;
       });
       break;
@@ -438,9 +373,6 @@ const filteredProjects = computed(() => {
       break;
     case "name":
       filtered.sort((a, b) => (a?.name || '').localeCompare(b?.name || ''));
-      break;
-    case "heartbeats":
-      filtered.sort((a, b) => (b?.total_heartbeats || 0) - (a?.total_heartbeats || 0));
       break;
   }
 
@@ -460,14 +392,8 @@ function normalizeProject(project: any): Project {
   return {
     name: project?.name || 'Unnamed Project',
     total_seconds: Number(project?.total_seconds) || 0,
-    total_heartbeats: Number(project?.total_heartbeats) || 0,
     languages: Array.isArray(project?.languages) ? project.languages : [],
-    editors: Array.isArray(project?.editors) ? project.editors : [],
-    first_heartbeat: project?.first_heartbeat || null,
-    last_heartbeat: project?.last_heartbeat || null,
-    repo_url: project?.repo_url || null,
-    recent_activity_seconds: Number(project?.recent_activity_seconds) || 0,
-    recent_activity_formatted: project?.recent_activity_formatted || ''
+    most_recent_heartbeat: project?.most_recent_heartbeat || null
   };
 }
 
