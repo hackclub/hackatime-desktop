@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.7.0](https://github.com/hackclub/hackatime-desktop/compare/app-v1.6.2...app-v1.7.0) (2025-10-10)
+
+
+### ✨ Features
+
+* add autostart functionality ([dab9a80](https://github.com/hackclub/hackatime-desktop/commit/dab9a807a52d5cbcdf04022e7d440d59f612a75c))
+
+
+### 🐛 Bugfixes
+
+* adjust project page to api response ([48146f0](https://github.com/hackclub/hackatime-desktop/commit/48146f009150d13421f82642a7cc7a32ece36810))
+* app now hides on closing ([a266acc](https://github.com/hackclub/hackatime-desktop/commit/a266acc5d44f8b6e8319d0f49889c2ee0e13d6e6))
+
+
+### 👽 Miscellaneous
+
+* update readme with download buttons ([db73247](https://github.com/hackclub/hackatime-desktop/commit/db732471b7f037f4b19ea20b9fdabbc3f5ce51b3))
+
 ## [1.6.2](https://github.com/hackclub/hackatime-desktop/compare/app-v1.6.1...app-v1.6.2) (2025-10-09)
 
 
