@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.1](https://github.com/hackclub/hackatime-desktop/compare/app-v1.7.0...app-v1.7.1) (2025-10-10)
+
+
+### 👽 Miscellaneous
+
+* update pnpm lock ([bc8a812](https://github.com/hackclub/hackatime-desktop/commit/bc8a8121b1a9feb7e6d3a578375e0c7db4b4970f))
+
 ## [1.7.0](https://github.com/hackclub/hackatime-desktop/compare/app-v1.6.2...app-v1.7.0) (2025-10-10)
 
 
