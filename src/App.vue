@@ -81,6 +81,7 @@ const sessionStats = ref<any>(null);
 const presenceData = ref<any>(null);
 const presenceRefreshInterval = ref<ReturnType<typeof setInterval> | null>(null);
 const presenceFetchInProgress = ref(false);
+const updateCheckInterval = ref<ReturnType<typeof setInterval> | null>(null);
 const oauthUrl = ref<string | null>(null);
 const nextPresenceFetchAllowedAt = ref<number>(0);
 const lastPresenceFetchAt = ref<number>(0);
@@ -98,6 +99,8 @@ const updateData = ref<any>(null);
 const showUpdateModal = ref(false);
 const isInstallingUpdate = ref(false);
 const currentVersion = ref<string>('1.5.1');
+const lastUpdateCheckTime = ref<number>(0);
+const updateCheckInProgress = ref(false);
 
 
 const weeklyChartData = computed(() => {
@@ -141,10 +144,9 @@ onMounted(async () => {
     console.warn("Failed to get app version:", error);
   }
   
-  isDevMode.value = apiConfig.value.base_url.includes('localhost') || 
-                    apiConfig.value.base_url.includes('127.0.0.1') ||
-                    window.location.hostname === 'localhost' ||
-                    window.location.hostname === '127.0.0.1';
+  isDevMode.value = window.location.hostname === 'localhost' || 
+                    window.location.hostname === '127.0.0.1' ||
+                    window.location.protocol === 'http:';
   
   try {
     const startUrls = await getCurrent();
@@ -185,11 +187,17 @@ onMounted(async () => {
   
   window.addEventListener('focus', async () => {
     await loadAuthState();
+    if (authState.value.is_authenticated) {
+      checkForUpdatesAndInstall();
+    }
   });
   
   document.addEventListener('visibilitychange', async () => {
     if (!document.hidden) {
       await loadAuthState();
+      if (authState.value.is_authenticated) {
+        checkForUpdatesAndInstall();
+      }
     }
   });
   
@@ -199,10 +207,12 @@ onMounted(async () => {
   }
   
   checkForUpdatesAndInstall();
+  startUpdateChecks();
 });
 
 onUnmounted(() => {
   stopPresenceRefresh();
+  stopUpdateChecks();
 });
 
 async function loadAuthState() {
@@ -390,6 +400,24 @@ function stopPresenceRefresh() {
   }
 }
 
+function startUpdateChecks() {
+  if (updateCheckInterval.value) {
+    clearInterval(updateCheckInterval.value);
+    updateCheckInterval.value = null;
+  }
+  updateCheckInterval.value = setInterval(() => {
+    checkForUpdatesAndInstall();
+  }, 60 * 60 * 1000); // Check every hour
+  console.log("Started periodic update checks (every 60 minutes)");
+}
+
+function stopUpdateChecks() {
+  if (updateCheckInterval.value) {
+    clearInterval(updateCheckInterval.value);
+    updateCheckInterval.value = null;
+  }
+}
+
 
 async function authenticate() {
   isLoading.value = true;
@@ -502,11 +530,24 @@ async function handleDirectOAuthAuth(token?: string) {
   }
 }
 
-async function checkForUpdatesAndInstall() {
-  if (isDevMode.value) {
-    console.info('[AUTO-UPDATE] Skipping auto-update check in development mode');
+async function checkForUpdatesAndInstall(retryCount = 0) {
+  
+  if (updateCheckInProgress.value) {
+    console.info('[AUTO-UPDATE] Update check already in progress, skipping');
     return;
   }
+  
+  const now = Date.now();
+  const timeSinceLastCheck = now - lastUpdateCheckTime.value;
+  const minInterval = 5 * 60 * 1000; // 5 minutes minimum between checks
+  
+  if (timeSinceLastCheck < minInterval && lastUpdateCheckTime.value > 0) {
+    console.info(`[AUTO-UPDATE] Skipping update check, last check was ${Math.round(timeSinceLastCheck / 1000)}s ago`);
+    return;
+  }
+  
+  updateCheckInProgress.value = true;
+  lastUpdateCheckTime.value = now;
   
   try {
     console.info('[AUTO-UPDATE] Checking for updates...');
@@ -522,6 +563,19 @@ async function checkForUpdatesAndInstall() {
     }
   } catch (error) {
     console.error('[AUTO-UPDATE] Auto-update check failed:', error);
+    
+    if (retryCount < 2) {
+      console.info(`[AUTO-UPDATE] Retrying update check in 10 seconds (attempt ${retryCount + 1}/3)`);
+      setTimeout(() => {
+        updateCheckInProgress.value = false;
+        checkForUpdatesAndInstall(retryCount + 1);
+      }, 10000);
+      return;
+    } else {
+      console.error('[AUTO-UPDATE] Failed to check for updates after 3 attempts');
+    }
+  } finally {
+    updateCheckInProgress.value = false;
   }
 }
 
