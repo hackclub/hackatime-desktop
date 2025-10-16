@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.7.3](https://github.com/hackclub/hackatime-desktop/compare/app-v1.7.2...app-v1.7.3) (2025-10-16)
+
+
+### 🐛 Bugfixes
+
+* correct card alignment issues ([59008e3](https://github.com/hackclub/hackatime-desktop/commit/59008e3849753ccaac037657d65bad2a70387e3c))
+
+
+### 👽 Miscellaneous
+
+* add license ([ece57e2](https://github.com/hackclub/hackatime-desktop/commit/ece57e29811ca228a255bef7bfe3117c3e3d236d))
+* add security policy ([145b3b9](https://github.com/hackclub/hackatime-desktop/commit/145b3b9422bb5b5095a6e5aa59aa66b749338b5a))
+
 ## [1.7.2](https://github.com/hackclub/hackatime-desktop/compare/app-v1.7.1...app-v1.7.2) (2025-10-10)
 
 
