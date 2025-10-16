@@ -761,17 +761,21 @@ async function handleInstallNow() {
           <div v-if="authState.is_authenticated && userStats" class="w-64 min-w-64 flex flex-col responsive-full-width">
             <div class="card-3d-app h-full">
               <div class="rounded-[8px] border border-black p-4 card-3d-app-front h-full flex flex-col" style="background-color: #3D2C3E;">
-              <div class="flex items-center justify-between mb-4">
-                <h2 class="text-white text-[16px] font-bold italic m-0" style="font-family: 'Outfit', sans-serif;">
-                  leaderboard
-                </h2>
-                <div class="flex gap-2 text-[10px]" style="font-family: 'Outfit', sans-serif;">
-                  <span class="text-white underline cursor-pointer">friends</span>
-                  <span class="text-white cursor-pointer">global</span>
+                <div class="flex items-center justify-between mb-4">
+                  <h2 class="text-white text-[16px] font-bold italic m-0" style="font-family: 'Outfit', sans-serif;">
+                    leaderboard
+                  </h2>
+                  <div class="flex gap-2 text-[10px]" style="font-family: 'Outfit', sans-serif;">
+                    <span class="text-white underline cursor-pointer">friends</span>
+                    <span class="text-white cursor-pointer">global</span>
+                  </div>
+                </div>
+                <div class="flex items-center justify-center h-full">
+                  <p class="text-white text-[18px] font-semibold opacity-60" style="font-family: 'Outfit', sans-serif;">
+                    Coming Soon...
+                  </p>
                 </div>
               </div>
-              <!-- Leaderboard content would go here -->
-            </div>
             </div>
           </div>
         </div>

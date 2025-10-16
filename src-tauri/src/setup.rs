@@ -45,15 +45,32 @@ fn get_expected_config_content(api_key: &str, api_url: &str) -> String {
     }
 }
 
-fn normalize_config_content(content: &str) -> String {
+fn check_config_has_required_values(content: &str, api_key: &str, api_url: &str) -> bool {
+    let normalized = content.replace("\r\n", "\n");
+    let mut found_api_url = false;
+    let mut found_api_key = false;
     
-    content
-        .replace("\r\n", "\n")
-        .lines()
-        .map(|line| line.trim())
-        .filter(|line| !line.is_empty())
-        .collect::<Vec<_>>()
-        .join("\n")
+    for line in normalized.lines() {
+        let trimmed = line.trim();
+        
+        if trimmed.starts_with("api_url") {
+            if let Some(value) = trimmed.split('=').nth(1) {
+                let value = value.trim();
+                if value == api_url {
+                    found_api_url = true;
+                }
+            }
+        } else if trimmed.starts_with("api_key") {
+            if let Some(value) = trimmed.split('=').nth(1) {
+                let value = value.trim();
+                if value == api_key {
+                    found_api_key = true;
+                }
+            }
+        }
+    }
+    
+    found_api_url && found_api_key
 }
 
 #[tauri::command]
@@ -72,7 +89,7 @@ pub async fn check_wakatime_config(api_key: String, api_url: String) -> Result<W
     };
     
     let matches = if let Some(ref actual) = actual_content {
-        normalize_config_content(actual) == normalize_config_content(&expected_content)
+        check_config_has_required_values(actual, &api_key, &api_url)
     } else {
         false
     };
@@ -136,23 +153,8 @@ pub async fn setup_hackatime_macos_linux(api_key: String, api_url: String) -> Re
     let config_content = fs::read_to_string(&config_path)
         .map_err(|e| format!("Failed to read config file: {}", e))?;
 
-    let lines: Vec<&str> = config_content.lines().collect();
-    let mut found_api_url = false;
-    let mut found_api_key = false;
-    let mut found_heartbeat_rate = false;
-
-    for line in lines {
-        if line.starts_with("api_url =") {
-            found_api_url = true;
-        } else if line.starts_with("api_key =") {
-            found_api_key = true;
-        } else if line.starts_with("heartbeat_rate_limit_seconds =") {
-            found_heartbeat_rate = true;
-        }
-    }
-
-    if !found_api_url || !found_api_key || !found_heartbeat_rate {
-        return Err("Config file is missing required fields".to_string());
+    if !check_config_has_required_values(&config_content, &api_key, &api_url) {
+        return Err("Config file is missing required api_url and api_key values".to_string());
     }
 
     Ok(format!(
@@ -191,23 +193,8 @@ pub async fn setup_hackatime_windows(api_key: String, api_url: String) -> Result
     let config_content = fs::read_to_string(&config_path)
         .map_err(|e| format!("Failed to read config file: {}", e))?;
 
-    let lines: Vec<&str> = config_content.lines().collect();
-    let mut found_api_url = false;
-    let mut found_api_key = false;
-    let mut found_heartbeat_rate = false;
-
-    for line in lines {
-        if line.starts_with("api_url =") {
-            found_api_url = true;
-        } else if line.starts_with("api_key =") {
-            found_api_key = true;
-        } else if line.starts_with("heartbeat_rate_limit_seconds =") {
-            found_heartbeat_rate = true;
-        }
-    }
-
-    if !found_api_url || !found_api_key || !found_heartbeat_rate {
-        return Err("Config file is missing required fields".to_string());
+    if !check_config_has_required_values(&config_content, &api_key, &api_url) {
+        return Err("Config file is missing required api_url and api_key values".to_string());
     }
 
     Ok(format!(
