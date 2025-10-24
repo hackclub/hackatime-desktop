@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.7.5](https://github.com/hackclub/hackatime-desktop/compare/app-v1.7.4...app-v1.7.5) (2025-10-24)
+
+
+### 🐛 Bugfixes
+
+* eliminate duplicate discord definitions ([472867d](https://github.com/hackclub/hackatime-desktop/commit/472867d58f306d70241b07b5f3135c34055ad555))
+* make option enabled by default ([d037bdb](https://github.com/hackclub/hackatime-desktop/commit/d037bdb529a4a078a5d10f7daa68698da9726e5f))
+
 ## [1.7.4](https://github.com/hackclub/hackatime-desktop/compare/app-v1.7.3...app-v1.7.4) (2025-10-24)
 
 
