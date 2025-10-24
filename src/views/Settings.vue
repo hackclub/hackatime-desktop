@@ -45,9 +45,9 @@
                   <h4 class="font-medium text-text-primary mb-1">Notifications</h4>
                   <p class="text-sm text-text-secondary">Show desktop notifications</p>
                 </div>
-                <label class="switch">
-                  <input type="checkbox" checked>
-                  <span class="slider"></span>
+                <label class="switch" :class="{ 'opacity-50 cursor-not-allowed': isLoading }">
+                  <input type="checkbox" :checked="notificationsEnabled" :disabled="isLoading" @change="toggleNotifications">
+                  <span class="slider" :class="{ 'animate-pulse': isLoading }"></span>
                 </label>
               </div>
             </div>
@@ -291,6 +291,7 @@ const emit = defineEmits<{
 
 const discordRpcEnabled = ref(false);
 const autostartEnabled = ref(false);
+const notificationsEnabled = ref(false);
 const isLoading = ref(false);
 const appVersion = ref('...');
 const isClearingCache = ref(false);
@@ -565,6 +566,14 @@ async function loadAutostartState() {
   }
 }
 
+async function loadNotificationsState() {
+  try {
+    notificationsEnabled.value = await invoke("get_notifications_enabled");
+  } catch (error) {
+    console.error("Failed to load notifications state:", error);
+  }
+}
+
 async function toggleAutostart() {
   if (isLoading.value) return;
   
@@ -594,6 +603,23 @@ async function toggleDiscordRpc() {
     console.error("Failed to toggle Discord RPC:", error);
     
     discordRpcEnabled.value = !discordRpcEnabled.value;
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+async function toggleNotifications() {
+  if (isLoading.value) return;
+  
+  isLoading.value = true;
+  try {
+    const newState = !notificationsEnabled.value;
+    await invoke("set_notifications_enabled", { enabled: newState });
+    notificationsEnabled.value = newState;
+  } catch (error) {
+    console.error("Failed to toggle notifications:", error);
+    
+    notificationsEnabled.value = !notificationsEnabled.value;
   } finally {
     isLoading.value = false;
   }
@@ -689,6 +715,7 @@ async function downloadAndInstallUpdate() {
 onMounted(async () => {
   loadDiscordRpcState();
   loadAutostartState();
+  loadNotificationsState();
   try {
     appVersion.value = await getVersion();
   } catch (error) {

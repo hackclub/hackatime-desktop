@@ -9,12 +9,16 @@ use crate::push_log;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Preferences {
     pub autostart_enabled: bool,
+    pub notifications_enabled: bool,
+    pub discord_rpc_enabled: bool,
 }
 
 impl Default for Preferences {
     fn default() -> Self {
         Self {
-            autostart_enabled: false,
+            autostart_enabled: true,
+            notifications_enabled: true,
+            discord_rpc_enabled: true,
         }
     }
 }
@@ -84,5 +88,47 @@ pub fn set_autostart_enabled(app: AppHandle, enabled: bool) -> Result<(), String
 pub fn get_autostart_enabled() -> Result<bool, String> {
     let preferences = load_preferences().unwrap_or_default();
     Ok(preferences.autostart_enabled)
+}
+
+#[tauri::command]
+pub fn set_notifications_enabled(enabled: bool) -> Result<(), String> {
+    let mut preferences = load_preferences().unwrap_or_default();
+    preferences.notifications_enabled = enabled;
+    save_preferences(&preferences)?;
+    
+    if enabled {
+        push_log("info", "backend", "Notifications enabled".to_string());
+    } else {
+        push_log("info", "backend", "Notifications disabled".to_string());
+    }
+    
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_notifications_enabled() -> Result<bool, String> {
+    let preferences = load_preferences().unwrap_or_default();
+    Ok(preferences.notifications_enabled)
+}
+
+#[tauri::command]
+pub fn set_discord_rpc_enabled(enabled: bool) -> Result<(), String> {
+    let mut preferences = load_preferences().unwrap_or_default();
+    preferences.discord_rpc_enabled = enabled;
+    save_preferences(&preferences)?;
+    
+    if enabled {
+        push_log("info", "backend", "Discord RPC enabled".to_string());
+    } else {
+        push_log("info", "backend", "Discord RPC disabled".to_string());
+    }
+    
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_discord_rpc_enabled() -> Result<bool, String> {
+    let preferences = load_preferences().unwrap_or_default();
+    Ok(preferences.discord_rpc_enabled)
 }
 

@@ -140,6 +140,10 @@ pub fn run() {
             preferences::get_preferences,
             preferences::set_autostart_enabled,
             preferences::get_autostart_enabled,
+            preferences::set_notifications_enabled,
+            preferences::get_notifications_enabled,
+            preferences::set_discord_rpc_enabled,
+            preferences::get_discord_rpc_enabled,
             
             setup::setup_hackatime_macos_linux,
             setup::setup_hackatime_windows,

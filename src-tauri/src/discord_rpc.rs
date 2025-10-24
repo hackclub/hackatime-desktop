@@ -299,8 +299,7 @@ pub async fn set_discord_rpc_enabled(
     let mut rpc_service = discord_rpc_state.lock().await;
 
     if enabled {
-        
-        let default_client_id = "1234567890123456789"; 
+        let default_client_id = "1423077619183779872"; 
         rpc_service.connect(default_client_id)
     } else {
         rpc_service.disconnect()
