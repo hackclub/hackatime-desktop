@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.4](https://github.com/hackclub/hackatime-desktop/compare/app-v1.7.3...app-v1.7.4) (2025-10-24)
+
+
+### 🐛 Bugfixes
+
+* update hackatime url ([e84c1d6](https://github.com/hackclub/hackatime-desktop/commit/e84c1d6a37fdef397189e8a9108f68d4ddb11641))
+
 ## [1.7.3](https://github.com/hackclub/hackatime-desktop/compare/app-v1.7.2...app-v1.7.3) (2025-10-24)
 
 
