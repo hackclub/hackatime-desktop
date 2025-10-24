@@ -283,25 +283,3 @@ pub async fn discord_rpc_auto_disconnect(
     rpc_service.disconnect()
 }
 
-#[tauri::command]
-pub async fn get_discord_rpc_enabled(
-    discord_rpc_state: State<'_, Arc<tauri::async_runtime::Mutex<DiscordRpcService>>>,
-) -> Result<bool, String> {
-    let rpc_service = discord_rpc_state.lock().await;
-    Ok(rpc_service.is_connected())
-}
-
-#[tauri::command]
-pub async fn set_discord_rpc_enabled(
-    enabled: bool,
-    discord_rpc_state: State<'_, Arc<tauri::async_runtime::Mutex<DiscordRpcService>>>,
-) -> Result<(), String> {
-    let mut rpc_service = discord_rpc_state.lock().await;
-
-    if enabled {
-        let default_client_id = "1423077619183779872"; 
-        rpc_service.connect(default_client_id)
-    } else {
-        rpc_service.disconnect()
-    }
-}

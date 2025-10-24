@@ -170,8 +170,6 @@ pub fn run() {
             discord_rpc::discord_rpc_update_from_heartbeat,
             discord_rpc::discord_rpc_auto_connect,
             discord_rpc::discord_rpc_auto_disconnect,
-            discord_rpc::get_discord_rpc_enabled,
-            discord_rpc::set_discord_rpc_enabled,
             
             projects::get_projects,
             projects::get_project_details,
