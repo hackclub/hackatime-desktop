@@ -29,7 +29,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self' ipc: http://ipc.localhost; connect-src 'self' ipc: http://ipc.localhost https://hackatime.hackclub.com https://pub-d35fbe65a5b5426bb6d62ff02a8c7d03.r2.dev wss://*.ingest.us.sentry.io https://us.i.posthog.com https://fonts.googleapis.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; worker-src 'self' blob:;"
+      "csp": "default-src 'self' ipc: http://ipc.localhost; connect-src 'self' ipc: http://ipc.localhost https://hackatime.hackclub.com https://desktop.hackatime.hackclub-assets.com wss://*.ingest.us.sentry.io https://us.i.posthog.com https://fonts.googleapis.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; worker-src 'self' blob:;"
     },
     "withGlobalTauri": true
   },
@@ -64,7 +64,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdERjg4QTFCNTJFMDk0MUQKUldRZGxPQlNHNHI0ZlRkMDN0MGI1MnllY1dUVStZalV3dVdhcTFuREx5SGtBc0txQ2xnTWs3WU4K",
       "endpoints": [
-        "https://pub-d35fbe65a5b5426bb6d62ff02a8c7d03.r2.dev/update-manifest.json"
+        "https://desktop.hackatime.hackclub-assets.com/update-manifest.json"
       ]
     }
   }

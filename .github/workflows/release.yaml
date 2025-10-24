@@ -250,7 +250,7 @@ jobs:
       - name: Generate update manifest
         id: generate_manifest
         env:
-          DOWNLOAD_URL_BASE: 'https://pub-d35fbe65a5b5426bb6d62ff02a8c7d03.r2.dev'
+          DOWNLOAD_URL_BASE: 'https://desktop.hackatime.hackclub-assets.com'
           VERSION: '${{ steps.get_version.outputs.version }}'
         run: >
           # Read signatures into variables
