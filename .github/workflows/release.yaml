@@ -251,10 +251,14 @@ jobs:
           files: |
             artifacts/macos-latest/**/*.dmg
             artifacts/macos-latest/**/*.app.tar.gz
+            artifacts/macos-latest/**/*.app.tar.gz.sig
             artifacts/ubuntu-24.04/**/*.AppImage
+            artifacts/ubuntu-24.04/**/*.AppImage.tar.gz.sig
             artifacts/ubuntu-24.04/**/*.deb
             artifacts/ubuntu-24.04/**/*.rpm
             artifacts/windows-latest/**/*.msi
+            artifacts/windows-latest/**/*.msi.zip.sig
+            artifacts/windows-latest/**/*.nsis.zip.sig
             artifacts/windows-latest/**/*.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
