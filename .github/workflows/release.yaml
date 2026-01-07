@@ -234,6 +234,8 @@ jobs:
     needs: 
       - build
       - release-please
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     if: ${{ fromJSON(needs.release-please.outputs.manifest).releases_created == 'true' }}
     steps:
