@@ -229,6 +229,43 @@ jobs:
             src-tauri/target/release/bundle/nsis/*.exe
             src-tauri/target/release/bundle/nsis/*.nsis.zip
             src-tauri/target/release/bundle/nsis/*.nsis.zip.sig
+
+  upload-github-release:
+    needs: 
+      - build
+      - release-please
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    if: ${{ fromJSON(needs.release-please.outputs.manifest).releases_created == 'true' }}
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v5
+        with:
+          path: artifacts
+      
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.release-please.outputs.tag_name }}
+          files: |
+            artifacts/macos-latest/**/*.dmg
+            artifacts/macos-latest/**/*.app.tar.gz
+            artifacts/macos-latest/**/*.app.tar.gz.sig
+            artifacts/ubuntu-24.04/**/*.AppImage
+            artifacts/ubuntu-24.04/**/*.AppImage
+            artifacts/ubuntu-24.04/**/*.AppImage.tar.gz
+            artifacts/ubuntu-24.04/**/*.deb
+            artifacts/ubuntu-24.04/**/*.rpm
+            artifacts/windows-latest/**/*.msi
+            artifacts/windows-latest/**/*.msi.zip
+            artifacts/windows-latest/**/*.nsis.zip
+            artifacts/windows-latest/**/*.msi.zip.sig
+            artifacts/windows-latest/**/*.nsis.zip.sig
+            artifacts/windows-latest/**/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
   upload-s3:
     needs: build
     runs-on: ubuntu-latest
