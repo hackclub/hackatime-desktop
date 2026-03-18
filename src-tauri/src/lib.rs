@@ -5,6 +5,8 @@ use once_cell::sync::Lazy;
 use std::sync::Mutex;
 use tauri_plugin_deep_link::DeepLinkExt;
 
+use scraper::{Html, Selector};
+use serde::Serialize;
 
 mod auth;
 mod config;
@@ -26,6 +28,94 @@ pub use config::ApiConfig;
 pub use discord_rpc::{DiscordRpcService};
 pub use session::SessionState;
 
+
+#[derive(Serialize, Clone, Debug)]
+pub struct LeaderboardEntry {
+    pub name: String,
+    pub avatar: String,
+    pub time: String,
+}
+
+
+#[tauri::command]
+fn get_leaderboard_data() -> Result<Vec<LeaderboardEntry>, String> {
+    let url = "https://hackatime.hackclub.com/leaderboards/entries?period_type=daily&scope=global&page=1";
+
+    let client = reqwest::blocking::Client::builder()
+        .user_agent("Mozilla/5.0")
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let res = client.get(url).send().map_err(|e| e.to_string())?;
+
+    let html = res.text().map_err(|e| e.to_string())?;
+
+    let document = Html::parse_document(&html);
+
+    let user_selector = Selector::parse("a.text-blue").unwrap();
+    let user_info_selector = Selector::parse("div.user-info").unwrap();
+    let img_selector = Selector::parse("img").unwrap();
+
+    let mut results = Vec::new();
+
+    for element in document.select(&user_selector) {
+        let username = element.text().collect::<Vec<_>>().join("").trim().to_string();
+
+        if !element.value().attr("href").unwrap_or("").starts_with("/@") {
+            continue;
+        }
+
+        // AVATAR
+        let mut avatar = "Yok".to_string();
+
+        if let Some(parent) = element.ancestors().find(|n| {
+            n.value()
+                .as_element()
+                .map(|e| e.name() == "div" && e.has_class("user-info", scraper::CaseSensitivity::CaseSensitive))
+                .unwrap_or(false)
+        }) {
+            let parent = scraper::ElementRef::wrap(parent).unwrap();
+
+            if let Some(img) = parent.select(&img_selector).next() {
+                if let Some(src) = img.value().attr("src") {
+                    avatar = src.to_string();
+                }
+            }
+        }
+
+        let mut time = "0s".to_string();
+
+        if let Some(flex_parent) = element.ancestors().find(|n| {
+            n.value()
+                .as_element()
+                .map(|e| e.name() == "div" && e.has_class("flex-1", scraper::CaseSensitivity::CaseSensitive))
+                .unwrap_or(false)
+        }) {
+            let flex_parent = scraper::ElementRef::wrap(flex_parent).unwrap();
+
+            for sibling in flex_parent.next_siblings() {
+                if let Some(el) = scraper::ElementRef::wrap(sibling) {
+                    let text = el.text().collect::<Vec<_>>().join("").trim().to_string();
+
+                    if text.contains("h") || text.contains("m") || text.contains("s") {
+                        time = text;
+                        break;
+                    }
+                }
+            }
+        }
+
+        results.push(LeaderboardEntry {
+            name: username,
+            avatar,
+            time,
+        });
+    }
+
+    Ok(results)
+}
+
+
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
@@ -40,6 +130,9 @@ fn get_app_version(app: tauri::AppHandle) -> String {
 fn get_current_os() -> String {
     std::env::consts::OS.to_string()
 }
+
+
+
 
 #[derive(Clone, serde::Serialize)]
 struct LogEntry {
@@ -115,6 +208,7 @@ pub fn run() {
             entity: None,
         })))
         .invoke_handler(tauri::generate_handler![
+            get_leaderboard_data,
             greet,
             get_app_version,
             get_current_os,

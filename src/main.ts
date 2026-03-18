@@ -6,7 +6,6 @@ import { usePostHog } from './composables/usePostHog'
 
 const app = createApp(App)
 
-
 const { posthog } = usePostHog()
 
 

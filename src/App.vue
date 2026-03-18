@@ -48,6 +48,12 @@ if (!(window as any).__hackatimeErrorHandlerSet) {
   });
 }
 
+interface LeaderboardEntry {
+  name: string;
+  avatar: string;
+  time: string;
+}
+
 interface AuthState {
   is_authenticated: boolean;
   access_token: string | null;
@@ -86,6 +92,8 @@ const oauthUrl = ref<string | null>(null);
 const nextPresenceFetchAllowedAt = ref<number>(0);
 const lastPresenceFetchAt = ref<number>(0);
 const currentOs = ref<string | null>(null);
+const leaderboard = ref<LeaderboardEntry[]>([]);
+const isLoading_board = ref(true);
 
 const currentPage = ref<'home' | 'projects' | 'statistics' | 'settings'>('home');
 
@@ -130,13 +138,35 @@ const weeklyChartData = computed(() => {
     }));
 });
 
+const fetchLeaderboard = async () => {
+  try {
+    isLoading.value = true;
+    
+
+    const data = await invoke<LeaderboardEntry[]>('get_leaderboard_data');
+    
+
+    console.log("TS: Rust'tan Gelen Ham Veri:", data);
+    
+   
+    leaderboard.value = data;
+    
+  } catch (error) {
+    console.error("Liderlik tablosu hatası:", error);
+  } finally {
+    isLoading_board.value = false;
+  }
+};
 
 onMounted(async () => {
+  fetchLeaderboard();
   await loadAuthState();
   await loadApiConfig();
   await loadHackatimeInfo();
   await loadCurrentOs();
   
+  setInterval(fetchLeaderboard, 1000 * 60 * 5);
+
   try {
     const appVersion = await invoke("get_app_version") as string;
     currentVersion.value = appVersion;
@@ -758,9 +788,9 @@ async function handleInstallNow() {
           </div>
 
           <!-- Leaderboard Sidebar (Right Side - 1/3) -->
-          <div v-if="authState.is_authenticated && userStats" class="w-64 min-w-64 flex flex-col responsive-full-width">
+          <div v-if="authState.is_authenticated" class="w-64 min-w-64 flex flex-col responsive-full-width">
             <div class="card-3d-app h-full">
-              <div class="rounded-[8px] border border-black p-4 card-3d-app-front h-full flex flex-col" style="background-color: #3D2C3E;">
+              <div class="rounded-[8px] border border-black p-4 card-3d-app-front h-full flex flex-col overflow-hidden" style="background-color: #3D2C3E;">
                 <div class="flex items-center justify-between mb-4">
                   <h2 class="text-white text-[16px] font-bold italic m-0" style="font-family: 'Outfit', sans-serif;">
                     leaderboard
@@ -770,10 +800,42 @@ async function handleInstallNow() {
                     <span class="text-white cursor-pointer">global</span>
                   </div>
                 </div>
-                <div class="flex items-center justify-center h-full">
-                  <p class="text-white text-[18px] font-semibold opacity-60" style="font-family: 'Outfit', sans-serif;">
-                    Coming Soon...
-                  </p>
+                <div class="flex-1 overflow-y-auto pr-1">
+                  <table class="w-full border-separate border-spacing-y-2">
+                    <thead class="sticky top-0 bg-[#3D2C3E] z-10">
+                      <tr class="text-[10px] text-gray-400 uppercase tracking-widest italic">
+                        <th class="text-left pl-2">#</th>
+                        <th class="text-left">User</th>
+                        <th class="text-right pr-2">Time</th>
+                      </tr>
+                    </thead>
+                    <tbody id="leaderboard-body">
+                      <tr v-for="(entry, index) in leaderboard" :key="entry.name" 
+                          class="bg-black/20 hover:bg-black/40 transition-all duration-200 group cursor-default">
+                        
+                        <td class="py-2 pl-2 rounded-l-md text-[12px] font-bold text-gray-500">
+                          {{ index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}` }}
+                        </td>
+
+                        <td class="py-2">
+                          <div class="flex items-center gap-2">
+                            <img :src="entry.avatar" 
+                                class="w-6 h-6 rounded-full border border-white/10 shadow-sm" 
+                                @error="(e) => (e.target as HTMLImageElement).src = 'https://github.com/identicons/app.png'" />
+                            <span class="text-white text-[12px] font-semibold truncate max-w-[80px]">
+                              {{ entry.name }}
+                            </span>
+                          </div>
+                        </td>
+
+                        <td class="py-2 pr-2 rounded-r-md text-right">
+                          <span class="font-mono text-[10px] text-orange-400/90 bg-orange-400/10 px-1.5 py-0.5 rounded">
+                            {{ entry.time }}
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -862,6 +924,14 @@ async function handleInstallNow() {
   border-radius: 12px;
   overflow: hidden;
   height: 100vh;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 10px;
 }
 
 .pushable {
