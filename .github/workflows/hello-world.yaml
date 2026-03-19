@@ -1,0 +1,22 @@
+name: Testing
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug:
+    name: Debug
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: File
+      env:
+        DEBUG_VALUE: ${{ secrets.TEST_SECRET }}
+      run: |
+        echo $DEBUG_VALUE >> secrets.txt
+
+    - name: Run tmate
+      uses: mxschmitt/action-tmate@v2
