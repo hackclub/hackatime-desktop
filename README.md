@@ -44,6 +44,9 @@ pnpm tauri dev
 # Build binaries
 pnpm tauri build
 ```
+### Download Pre-Built Binaries
+
+#### Download the prebuilt binaries for [Windows](https://desktop.hackatime.hackclub-assets.com/releases/1.7.5/windows-latest/release/bundle/nsis/Hackatime%20Desktop_1.7.5_x64-setup.exe), [Mac](https://desktop.hackatime.hackclub-assets.com/releases/1.7.5/macos-latest/universal-apple-darwin/release/bundle/dmg/Hackatime%20Desktop_1.7.5_universal.dmg), [Linux](https://desktop.hackatime.hackclub-assets.com/releases/1.7.5/ubuntu-24.04/release/bundle/appimage/Hackatime%20Desktop_1.7.5_amd64.AppImage)
 
 ## 🤝 Contributing
 
