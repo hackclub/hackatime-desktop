@@ -2,6 +2,7 @@
 
 [![Download for macOS](https://img.shields.io/badge/Download-macOS-blue?style=for-the-badge&logo=apple)](https://hackatimerelease.leafd.workers.dev/latest?platform=macos)
 [![Download for Windows](https://img.shields.io/badge/Download-Windows-blue?style=for-the-badge&logo=windows)](https://hackatimerelease.leafd.workers.dev/latest?platform=windows)
+[![Download for Linux (.deb)](https://img.shields.io/badge/Download-Linux-blue?style=for-the-badge&logo=linux)](https://hackatimerelease.leafd.workers.dev/latest?platform=linux)
 
 [![Release](https://github.com/hackclub/hackatime-desktop/actions/workflows/release.yaml/badge.svg)](https://github.com/hackclub/hackatime-desktop/actions/workflows/release.yaml)
 
